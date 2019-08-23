@@ -15,7 +15,8 @@ type Biblio struct {
 	output map[int]map[string]bool // state => set of words which terminate at state
 }
 
-func (biblio *Biblio) parse(text string) {
+// Parse TODO
+func (biblio *Biblio) Parse(text string) {
 }
 
 // adds word to the trie represented by biblio.g
@@ -62,6 +63,9 @@ func (biblio *Biblio) buildFailureTransitions() {
 				// the set output(failState) to the set output(current state)
 				// since they are substring matches
 				for word := range biblio.output[failState] {
+					if _, ok := biblio.output[tuple.state]; !ok {
+						biblio.output[tuple.state] = map[string]bool{}
+					}
 					biblio.output[tuple.state][word] = true
 				}
 				biblio.f[tuple.state] = failState
