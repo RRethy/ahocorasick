@@ -63,7 +63,7 @@
 // biblio.Compile: O(|Σ|*n*max)
 // biblio.Biblio.FindAll: Θ(m)
 
-package main
+package biblio
 
 // Biblio is the representation of a compiled set of patterns.
 type Biblio struct {
