@@ -8,35 +8,22 @@ import (
 func TestCompile(t *testing.T) {
 	tests := []struct {
 		input  []string
-		g      map[int]map[rune]int
-		f      map[int]int
+		next   map[int]map[rune]int
 		output map[int]map[string]bool
 	}{
 		{
 			[]string{"he", "she", "his", "hers"},
 			map[int]map[rune]int{
 				0: {'h': 1, 's': 3},
-				1: {'e': 2, 'i': 6},
-				2: {'r': 8},
-				3: {'h': 4},
-				4: {'e': 5},
-				5: {},
-				6: {'s': 7},
-				7: {},
-				8: {'s': 9},
-				9: {},
-			},
-			map[int]int{
-				0: 0,
-				1: 0,
-				2: 0,
-				3: 0,
-				4: 1,
-				5: 2,
-				6: 0,
-				7: 3,
-				8: 0,
-				9: 3,
+				1: {'h': 1, 'e': 2, 's': 3, 'i': 6},
+				2: {'h': 1, 's': 3, 'r': 8},
+				3: {'s': 3, 'h': 4},
+				4: {'h': 1, 's': 3, 'e': 5, 'i': 6},
+				5: {'h': 1, 's': 3, 'r': 8},
+				6: {'h': 1, 's': 7},
+				7: {'h': 4, 's': 3},
+				8: {'h': 1, 's': 9},
+				9: {'h': 4, 's': 3},
 			},
 			map[int]map[string]bool{
 				2: map[string]bool{"he": true},
@@ -48,18 +35,13 @@ func TestCompile(t *testing.T) {
 		{
 			[]string{},
 			map[int]map[rune]int{},
-			map[int]int{},
 			map[int]map[string]bool{},
 		},
 		{
 			[]string{"h"},
 			map[int]map[rune]int{
 				0: {'h': 1},
-				1: {},
-			},
-			map[int]int{
-				0: 0,
-				1: 0,
+				1: {'h': 1},
 			},
 			map[int]map[string]bool{
 				1: map[string]bool{"h": true},
@@ -70,38 +52,15 @@ func TestCompile(t *testing.T) {
 		got := Compile(test.input)
 
 		// check for correctly compiled state machine
-		if !(len(test.g) == 0 && len(got.g) == 0) && !reflect.DeepEqual(test.g, got.g) {
+		if !(len(test.next) == 0 && len(got.next) == 0) && !reflect.DeepEqual(test.next, got.next) {
 			t.Errorf(`
 Expected: %v
-Got:      %v`, test.g, got.g)
-		}
-		if !(len(test.f) == 0 && len(got.f) == 0) && !reflect.DeepEqual(test.f, got.f) {
-			t.Errorf(`
-Expected: %v
-Got:      %v`, test.f, got.f)
+Got:      %v`, test.next, got.next)
 		}
 		if !(len(test.output) == 0 && len(got.output) == 0) && !reflect.DeepEqual(test.output, got.output) {
 			t.Errorf(`
 Expected: %v
 Got:      %v`, test.output, got.output)
-		}
-	}
-}
-
-func TestParse(t *testing.T) {
-	tests := [][]Match{
-		{
-			{"she", 3}, {"he", 3}, {"hers", 5},
-		},
-	}
-	bib := Compile([]string{"he", "she", "his", "hers"})
-	got := bib.Parse("ushers")
-	for _, expected := range tests {
-		if !reflect.DeepEqual(got, expected) {
-			t.Errorf(`
-Expected: %v
-Got:      %v
-`, expected, got)
 		}
 	}
 }

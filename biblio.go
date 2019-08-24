@@ -10,9 +10,12 @@ package main
 // f is the failure function
 // output is the output function
 type Biblio struct {
-	g      map[int]map[rune]int    // state => transition => next state
-	f      map[int]int             // state => fail state
+	next   map[int]map[rune]int    // TODO
 	output map[int]map[string]bool // state => set of words which terminate at state
+}
+
+type trie struct {
+	tree map[int]map[rune]int
 }
 
 // Match TODO
@@ -23,19 +26,16 @@ type Match struct {
 
 // Parse TODO
 func (biblio *Biblio) Parse(text string) (matches []Match) {
+	if len(biblio.output) == 0 {
+		return
+	}
+
 	state := 0
 	for i, c := range text {
-		for {
-			if _, ok := biblio.g[state][c]; !ok {
-				if state == 0 {
-					break
-				} else {
-					state = biblio.f[state]
-				}
-			} else {
-				state = biblio.g[state][c]
-				break
-			}
+		if next, ok := biblio.next[state][c]; ok {
+			state = next
+		} else {
+			state = 0
 		}
 		for word := range biblio.output[state] {
 			matches = append(matches, Match{word, i})
@@ -44,68 +44,60 @@ func (biblio *Biblio) Parse(text string) (matches []Match) {
 	return
 }
 
-// adds word to the trie represented by biblio.g
-func (biblio *Biblio) addWord(word string) {
+func (t *trie) add(word string, output *map[int]map[string]bool) {
 	state := 0
 	for _, c := range word {
-		if _, ok := biblio.g[state]; !ok {
-			biblio.g[state] = map[rune]int{}
+		if _, ok := t.tree[state]; !ok {
+			t.tree[state] = map[rune]int{}
 		}
-		if _, ok := biblio.g[state][c]; !ok {
-			biblio.g[state][c] = len(biblio.g)
+		if _, ok := t.tree[state][c]; !ok {
+			t.tree[state][c] = len(t.tree)
 		}
-		state = biblio.g[state][c]
+		state = t.tree[state][c]
 	}
-	biblio.g[state] = map[rune]int{}
+	t.tree[state] = map[rune]int{}
 	// denote that state terminates word
-	biblio.output[state] = map[string]bool{word: true}
+	(*output)[state] = map[string]bool{word: true}
 }
 
 // builds the failure function for each state
-func (biblio *Biblio) buildFailureTransitions() {
-	type failtuple struct {
+func (biblio *Biblio) buildFailureTransitions(t *trie) {
+	type statedata struct {
 		state           int
 		transition      rune
 		parentFailState int
 		level           int
 	}
-	queue := make([]failtuple, 1)[:] // Note: this implicitly adds root state to the queue
-	// bfs the trie
+
+	queue := make([]statedata, 1)[:]
 	for len(queue) > 0 {
-		// pop front of queue
-		tuple := queue[0]
+		data := queue[0]
 		queue = queue[1:]
 
-		// Only nodes lower than level 1 can have a non-zero fail state
-		if tuple.level > 1 {
-			// Use the following algorithm to determine fail state:
-			// 1. check if parent fail state has current transition, if so then
-			//    transition to next state which is fail state
-			// 2. check if root has current transition, if so then transition
-			//    to next state which is fail state
-			// 3. else root is fail state
-			if failState, ok := biblio.g[tuple.parentFailState][tuple.transition]; ok {
-				// the set output(failState) to the set output(current state)
-				// since they are substring matches
-				for word := range biblio.output[failState] {
-					if _, ok := biblio.output[tuple.state]; !ok {
-						biblio.output[tuple.state] = map[string]bool{}
+		failstate := 0
+		if data.level > 1 {
+			if state, ok := biblio.next[data.parentFailState][data.transition]; ok {
+				for word := range biblio.output[state] {
+					if _, ok := biblio.output[data.state]; !ok {
+						biblio.output[data.state] = map[string]bool{word: true}
+					} else {
+						biblio.output[data.state][word] = true
 					}
-					biblio.output[tuple.state][word] = true
 				}
-				biblio.f[tuple.state] = failState
-			} else if failState, ok := biblio.g[0][tuple.transition]; ok {
-				biblio.f[tuple.state] = failState
-			} else {
-				biblio.f[tuple.state] = 0
+				failstate = state
+			} else if state, ok := biblio.next[0][data.transition]; ok {
+				failstate = state
 			}
-		} else {
-			biblio.f[tuple.state] = 0
 		}
 
-		// continue down bfs traversal
-		for c, childState := range biblio.g[tuple.state] {
-			queue = append(queue, failtuple{childState, c, biblio.f[tuple.state], tuple.level + 1})
+		for c, state := range biblio.next[failstate] {
+			if _, ok := biblio.next[data.state][c]; !ok {
+				biblio.next[data.state][c] = state
+			}
+		}
+
+		for c, state := range t.tree[data.state] {
+			queue = append(queue, statedata{state, c, failstate, data.level + 1})
 		}
 	}
 }
@@ -117,13 +109,22 @@ func Compile(words []string) *Biblio {
 		return biblio
 	}
 
-	biblio.g = map[int]map[rune]int{}
-	biblio.f = map[int]int{}
+	t := trie{}
+	t.tree = map[int]map[rune]int{}
 	biblio.output = map[int]map[string]bool{}
 	for _, word := range words {
-		biblio.addWord(word)
+		t.add(word, &biblio.output)
 	}
-	biblio.buildFailureTransitions()
+
+	biblio.next = map[int]map[rune]int{}
+	for state, transition := range t.tree {
+		biblio.next[state] = map[rune]int{}
+		for c, dest := range transition {
+			biblio.next[state][c] = dest
+		}
+	}
+
+	biblio.buildFailureTransitions(&t)
 
 	return biblio
 }
