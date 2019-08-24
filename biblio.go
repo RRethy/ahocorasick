@@ -46,17 +46,21 @@ func (biblio *Biblio) Parse(text string) (matches []Match) {
 
 func (t *trie) add(word string, output *map[int]map[string]bool) {
 	state := 0
-	for _, c := range word {
-		if _, ok := t.tree[state]; !ok {
-			t.tree[state] = map[rune]int{}
-		}
-		if _, ok := t.tree[state][c]; !ok {
-			t.tree[state][c] = len(t.tree)
-		}
-		state = t.tree[state][c]
+	if len(t.tree) == 0 {
+		t.tree[0] = map[rune]int{}
 	}
-	t.tree[state] = map[rune]int{}
-	// denote that state terminates word
+
+	for _, c := range word {
+		if next, ok := t.tree[state][c]; ok {
+			state = next
+		} else {
+			next = len(t.tree)
+			t.tree[state][c] = next
+			t.tree[next] = map[rune]int{}
+			state = next
+		}
+	}
+
 	(*output)[state] = map[string]bool{word: true}
 }
 

@@ -12,6 +12,23 @@ func TestCompile(t *testing.T) {
 		output map[int]map[string]bool
 	}{
 		{
+			[]string{"theyre", "they", "the"},
+			map[int]map[rune]int{
+				0: {'t': 1},
+				1: {'h': 2, 't': 1},
+				2: {'e': 3, 't': 1},
+				3: {'y': 4, 't': 1},
+				4: {'r': 5, 't': 1},
+				5: {'e': 6, 't': 1},
+				6: {'t': 1},
+			},
+			map[int]map[string]bool{
+				3: map[string]bool{"the": true},
+				4: map[string]bool{"they": true},
+				6: map[string]bool{"theyre": true},
+			},
+		},
+		{
 			[]string{"he", "she", "his", "hers"},
 			map[int]map[rune]int{
 				0: {'h': 1, 's': 3},
@@ -61,6 +78,35 @@ Got:      %v`, test.next, got.next)
 			t.Errorf(`
 Expected: %v
 Got:      %v`, test.output, got.output)
+		}
+	}
+}
+
+func TestParse(t *testing.T) {
+	tests := []struct {
+		patterns []string
+		expected []Match
+		text     string
+	}{
+		{
+			[]string{"he", "she", "his", "hers"},
+			[]Match{{"she", 3}, {"he", 3}, {"hers", 5}},
+			"ushers",
+		},
+		{
+			[]string{"they", "their", "theyre", "the", "tea", "te", "team", "go", "goo", "good"},
+			[]Match{{"the", 2}, {"they", 3}, {"theyre", 5}, {"go", 14}, {"goo", 15}, {"good", 16}, {"te", 19}, {"tea", 20}, {"team", 21}},
+			"theyre not a good team",
+		},
+	}
+	for _, test := range tests {
+		bib := Compile(test.patterns)
+		got := bib.Parse(test.text)
+		if !reflect.DeepEqual(got, test.expected) {
+			t.Errorf(`
+Expected: %v
+Got:      %v
+`, test.expected, got)
 		}
 	}
 }
