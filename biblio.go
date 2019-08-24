@@ -1,7 +1,7 @@
 package main
 
 // For more information on the aho-corasick pattern matching algorithm for
-// bibliographic search see the following paper:
+// bibliographic search, see the following paper:
 // https://cr.yp.to/bib/1975/aho.pdf
 
 // Biblio is the container for the neccessary components for the aho-corasick
@@ -15,8 +15,33 @@ type Biblio struct {
 	output map[int]map[string]bool // state => set of words which terminate at state
 }
 
+// Match TODO
+type Match struct {
+	word  string
+	index int
+}
+
 // Parse TODO
-func (biblio *Biblio) Parse(text string) {
+func (biblio *Biblio) Parse(text string) (matches []Match) {
+	state := 0
+	for i, c := range text {
+		for {
+			if _, ok := biblio.g[state][c]; !ok {
+				if state == 0 {
+					break
+				} else {
+					state = biblio.f[state]
+				}
+			} else {
+				state = biblio.g[state][c]
+				break
+			}
+		}
+		for word := range biblio.output[state] {
+			matches = append(matches, Match{word, i})
+		}
+	}
+	return
 }
 
 // adds word to the trie represented by biblio.g

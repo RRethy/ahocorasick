@@ -89,11 +89,27 @@ Got:      %v`, test.output, got.output)
 }
 
 func TestParse(t *testing.T) {
+	tests := [][]Match{
+		{
+			{"she", 3}, {"he", 3}, {"hers", 5},
+		},
+	}
+	bib := Compile([]string{"he", "she", "his", "hers"})
+	got := bib.Parse("ushers")
+	for _, expected := range tests {
+		if !reflect.DeepEqual(got, expected) {
+			t.Errorf(`
+Expected: %v
+Got:      %v
+`, expected, got)
+		}
+	}
 }
 
 func BenchmarkCompile(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		Compile([]string{"he",
+		Compile([]string{
+			"he",
 			"she",
 			"they",
 			"their",
@@ -113,4 +129,36 @@ func BenchmarkCompile(b *testing.B) {
 }
 
 func BenchmarkParse(b *testing.B) {
+	bib := Compile([]string{
+		"he",
+		"she",
+		"they",
+		"their",
+		"where",
+		"bear",
+		"taratula",
+		"adam",
+		"regard-rethy",
+		"panda",
+		"bear",
+		"golang",
+		"his",
+		"hers",
+		"her",
+	})
+	for i := 0; i < b.N; i++ {
+		bib.Parse(`
+ushers golang to     be rrrrrrrr tartula taratulapandawhere
+ushers golang to     be rrrrrrrr tartula taratulapandawhere
+ushers golang to     be rrrrrrrr tartula taratulapandawhere
+ushers golang to     be rrrrrrrr tartula taratulapandawhere
+ushers golang to     be rrrrrrrr tartula taratulapandawhere
+ushers golang to     be rrrrrrrr tartula taratulapandawhere
+ushers golang to     be rrrrrrrr tartula taratulapandawhere
+ushers golang to     be rrrrrrrr tartula taratulapandawhere
+ushers golang to     be rrrrrrrr tartula taratulapandawhere
+ushers golang to     be rrrrrrrr tartula taratulapandawhere
+ushers golang to     be rrrrrrrr tartula taratulapandawhere
+	`)
+	}
 }
