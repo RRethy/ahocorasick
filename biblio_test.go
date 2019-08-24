@@ -82,7 +82,7 @@ Got:      %v`, test.output, got.output)
 	}
 }
 
-func TestParse(t *testing.T) {
+func TestFindAll(t *testing.T) {
 	tests := []struct {
 		patterns []string
 		expected []Match
@@ -116,7 +116,7 @@ func TestParse(t *testing.T) {
 	}
 	for _, test := range tests {
 		bib := Compile(test.patterns)
-		got := bib.Parse(test.text)
+		got := bib.FindAll(test.text)
 		if !(len(got) == 0 && len(test.expected) == 0) && !reflect.DeepEqual(got, test.expected) {
 			t.Errorf(`
 Expected: %v
@@ -148,7 +148,7 @@ func BenchmarkCompile(b *testing.B) {
 	}
 }
 
-func BenchmarkParse(b *testing.B) {
+func BenchmarkFindAll(b *testing.B) {
 	bib := Compile([]string{
 		"he",
 		"she",
@@ -167,7 +167,7 @@ func BenchmarkParse(b *testing.B) {
 		"her",
 	})
 	for i := 0; i < b.N; i++ {
-		bib.Parse(`
+		bib.FindAll(`
 ushers golang to     be rrrrrrrr tartula taratulapandawhere
 ushers golang to     be rrrrrrrr tartula taratulapandawhere
 ushers golang to     be rrrrrrrr tartula taratulapandawhere

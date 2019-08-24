@@ -42,10 +42,10 @@
 // construct a Biblio, one must first call biblio.Compile and pass it a slice
 // of strings which are the patterns that will be looked for. Under the hood,
 // biblio.Compile will construct a finite state machine. Then, a string can be
-// passed to biblio.Parse, which will then return a slice of biblio.Matches.
+// passed to biblio.FindAll, which will then return a slice of biblio.Matches.
 // For example:
 // bib := biblio.Compile([]string{"foo", "bar", "baz"})
-// bib.Parse("foo bar baz bot") => {"foo", 0, 3}, {"bar", 4, 3}, {"baz", 8, 3}
+// bib.FindAll("foo bar baz bot") => {"foo", 0, 3}, {"bar", 4, 3}, {"baz", 8, 3}
 //
 // Let Σ be the alphabet for the patterns passed to biblio.Compile such that
 //   the alphabet represents the set of characters used in the patterns.
@@ -57,11 +57,11 @@
 //
 // Time Complexity:
 // biblio.Compile: O(|Σ|*total_pats_len)
-// biblio.Biblio.Parse(text): Θ(len(text))
+// biblio.Biblio.FindAll(text): Θ(len(text))
 //
 // Space Complexity:
 // biblio.Compile: O(|Σ|*n*max)
-// biblio.Biblio.Parse: Θ(m)
+// biblio.Biblio.FindAll: Θ(m)
 
 package main
 
@@ -115,9 +115,9 @@ func Compile(words []string) *Biblio {
 	return biblio
 }
 
-// Parse returns a slice of biblio.Match which represent each pattern found in
+// FindAll returns a slice of biblio.Match which represent each pattern found in
 // text
-func (biblio *Biblio) Parse(text string) (matches []Match) {
+func (biblio *Biblio) FindAll(text string) (matches []Match) {
 	if len(biblio.output) == 0 {
 		return
 	}
