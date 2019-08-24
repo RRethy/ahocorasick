@@ -1,30 +1,103 @@
+// Licensed under MIT.
+
+// Package biblio implements the aho-corasick pattern matching algorithm.  For
+// more information on the algorithm, see the academic paper published by
+// Alfred V. Aho and Margaret J. Corasick which is freely available at
+// https://cr.yp.to/bib/1975/aho.pdf.
+//
+// Terminology used corresponds to the terminology used in the aforementioned
+// paper.
+// This package uses uses a modified version of algorithm 2 to construct the
+// goto function, trie.tree, and partially constructs the output function,
+// Biblio.output. Then it uses a modified version of algorithm 4 to construct
+// the next function, Biblio.next, which lets us ignore algorithm 3 and the
+// failure function. This has a negative effect on compile time which is
+// benchmarked and can be viewed by running `git log --grep=BenchmarkCompile`.
+// The benefit of using algorithm 4 and the next function is the faster parsing
+// since we don't need to do any failure transitions, this has benchmarks
+// available for viewing with `git log --grep=BenchmarkParse`.
+//
+// UTF-8 is fully supported since all transitions are represented using the
+// rune type.
+//
+// There are two public facing datatypes, biblio.Biblio and biblio.Match. To
+// construct a Biblio, one must first call biblio.Compile and pass it a slice
+// of strings which are the patterns that will be looked for. Under the hood,
+// biblio.Compile will construct a finite state machine. Then, a string can be
+// passed to biblio.Parse, which will then return a slice of biblio.Matches.
+// For example:
+// bib := biblio.Compile([]string{"foo", "bar", "baz"})
+// bib.Parse("foo bar baz bot") => {"foo", 0, 3}, {"bar", 4, 7}, {"baz", 8, 11}
+//
+// Let Σ be the alphabet for the patterns passed to biblio.Compile such that
+//   the alphabet represents the set of characters used in the patterns.
+// Let total_pats_len be the sum of the lengths of all patterns passed to
+//   biblio.Compile
+// Let max be the length of the longest pattern passed to biblio.Compile
+// let n be the number of patterns passed to biblio.Compile
+// Let m be the number of matches
+//
+// Time Complexity:
+// biblio.Compile: O(|Σ|*total_pats_len)
+// biblio.Biblio.Parse(text): Θ(len(text))
+//
+// Space Complexity:
+// biblio.Compile: O(|Σ|*n*max)
+// biblio.Biblio.Parse: Θ(m)
+
 package main
 
-// For more information on the aho-corasick pattern matching algorithm for
-// bibliographic search, see the following paper:
-// https://cr.yp.to/bib/1975/aho.pdf
-
-// Biblio is the container for the neccessary components for the aho-corasick
-// string matching algorithm for bibliographic search
-// g is the goto function
-// f is the failure function
-// output is the output function
+// Biblio is the representation of a compiled set of patterns.
 type Biblio struct {
-	next   map[int]map[rune]int    // TODO
+	next   map[int]map[rune]int    // state => { transition character => state }
 	output map[int]map[string]bool // state => set of words which terminate at state
 }
 
+// trie is a simple trie representation used to construct the required dfa
 type trie struct {
 	tree map[int]map[rune]int
 }
 
-// Match TODO
+// Match is a representation of a pattern found in the text.
+// TODO
 type Match struct {
 	word  string
 	index int
 }
 
-// Parse TODO
+// Compile creates a Biblio for use in parsing. A state machine will be created
+// which can be used for linear time parsing of a text.
+func Compile(words []string) *Biblio {
+	biblio := new(Biblio)
+	if len(words) == 0 {
+		return biblio
+	}
+
+	// create the trie from each word in words
+	t := trie{}
+	t.tree = map[int]map[rune]int{}
+	biblio.output = map[int]map[string]bool{}
+	for _, word := range words {
+		t.add(word, &biblio.output)
+	}
+
+	// t.tree is a subgraph of biblio.next. It is used as the starting graph
+	// for it which then as additional edges added in buildNextFunc.
+	biblio.next = map[int]map[rune]int{}
+	for state, transition := range t.tree {
+		biblio.next[state] = map[rune]int{}
+		for c, dest := range transition {
+			biblio.next[state][c] = dest
+		}
+	}
+
+	biblio.buildNextFunc(&t)
+
+	return biblio
+}
+
+// Parse returns a slice of biblio.Match which represent each pattern found in
+// text
 func (biblio *Biblio) Parse(text string) (matches []Match) {
 	if len(biblio.output) == 0 {
 		return
@@ -44,6 +117,8 @@ func (biblio *Biblio) Parse(text string) (matches []Match) {
 	return
 }
 
+// add adds a word to the trie t and modifies output which holds information on
+// which state is a word terminating state in the trie
 func (t *trie) add(word string, output *map[int]map[string]bool) {
 	state := 0
 	if len(t.tree) == 0 {
@@ -64,8 +139,8 @@ func (t *trie) add(word string, output *map[int]map[string]bool) {
 	(*output)[state] = map[string]bool{word: true}
 }
 
-// builds the failure function for each state
-func (biblio *Biblio) buildFailureTransitions(t *trie) {
+// builds the finited state machine, biblio.next
+func (biblio *Biblio) buildNextFunc(t *trie) {
 	type statedata struct {
 		state           int
 		transition      rune
@@ -73,12 +148,33 @@ func (biblio *Biblio) buildFailureTransitions(t *trie) {
 		level           int
 	}
 
+	// will bfs the trie
 	queue := make([]statedata, 1)[:]
 	for len(queue) > 0 {
+		// pop front of queue
 		data := queue[0]
 		queue = queue[1:]
 
 		failstate := 0
+		// if data.state is in level 1 or 0, it has a failure state of 0 for
+		// all transitions
+		//
+		// if not then check if the parent of the current state has failure
+		// state which has the appropriate transition. This occurs for
+		// substring matches. For example, if we were going down the trie
+		// looking at "abc", then fail, then we could continue down the path in
+		// the trie holding "bc"
+		//
+		// if not, then check if state 0 has the appropriate transition. This
+		// occurs for substring matches starting at the current character. For
+		// example, if we were going down the trie looking at "abc", then fail,
+		// then we could continue down the path in the trie holding "c"
+		//
+		// if not, then 0 is the default fail state
+		//
+		// the trie in the previous examples is in fact the next dfa, but can
+		// be treated as a trie for explanations since there is a valid trie
+		// which is a subgraph of the next dfa
 		if data.level > 1 {
 			if state, ok := biblio.next[data.parentFailState][data.transition]; ok {
 				for word := range biblio.output[state] {
@@ -94,41 +190,18 @@ func (biblio *Biblio) buildFailureTransitions(t *trie) {
 			}
 		}
 
+		// union the transitions in the fail state with the current state, if
+		// they share a transition character, then the transition of the
+		// current state takes precedence
 		for c, state := range biblio.next[failstate] {
 			if _, ok := biblio.next[data.state][c]; !ok {
 				biblio.next[data.state][c] = state
 			}
 		}
 
+		// continue adding to the queue since we are doing a bfs
 		for c, state := range t.tree[data.state] {
 			queue = append(queue, statedata{state, c, failstate, data.level + 1})
 		}
 	}
-}
-
-// Compile TODO
-func Compile(words []string) *Biblio {
-	biblio := new(Biblio)
-	if len(words) == 0 {
-		return biblio
-	}
-
-	t := trie{}
-	t.tree = map[int]map[rune]int{}
-	biblio.output = map[int]map[string]bool{}
-	for _, word := range words {
-		t.add(word, &biblio.output)
-	}
-
-	biblio.next = map[int]map[rune]int{}
-	for state, transition := range t.tree {
-		biblio.next[state] = map[rune]int{}
-		for c, dest := range transition {
-			biblio.next[state][c] = dest
-		}
-	}
-
-	biblio.buildFailureTransitions(&t)
-
-	return biblio
 }
