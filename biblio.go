@@ -62,7 +62,6 @@
 // Space Complexity:
 // biblio.Compile: O(|Σ|*n*max)
 // biblio.Biblio.FindAll: Θ(m)
-
 package biblio
 
 // Biblio is the representation of a compiled set of patterns.
@@ -77,11 +76,11 @@ type trie struct {
 }
 
 // Match is a representation of a pattern found in the text.
-// word is the pattern that was matched
-// index is the index in the text of the first character of the matched pattern
+// Word is the pattern that was matched
+// Index is the index in the text of the first character of the matched pattern
 type Match struct {
-	word  string
-	index int
+	Word  string
+	Index int
 }
 
 // Compile creates a Biblio for use in parsing. A state machine will be created
