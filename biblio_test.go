@@ -90,12 +90,12 @@ func TestParse(t *testing.T) {
 	}{
 		{
 			[]string{"he", "she", "his", "hers"},
-			[]Match{{"she", 3}, {"he", 3}, {"hers", 5}},
+			[]Match{{"she", 1}, {"he", 2}, {"hers", 2}},
 			"ushers",
 		},
 		{
 			[]string{"they", "their", "theyre", "the", "tea", "te", "team", "go", "goo", "good"},
-			[]Match{{"the", 2}, {"they", 3}, {"theyre", 5}, {"go", 14}, {"goo", 15}, {"good", 16}, {"te", 19}, {"tea", 20}, {"team", 21}},
+			[]Match{{"the", 0}, {"they", 0}, {"theyre", 0}, {"go", 13}, {"goo", 13}, {"good", 13}, {"te", 18}, {"tea", 18}, {"team", 18}},
 			"theyre not a good team",
 		},
 		{
@@ -110,7 +110,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			[]string{"锅", "持有人", "potholderz", "MF DOOM"},
-			[]Match{{"potholderz", 9}, {"MF DOOM", 20}, {"锅", 39}, {"持有人", 49}},
+			[]Match{{"potholderz", 0}, {"MF DOOM", 14}, {"锅", 37}, {"持有人", 41}},
 			"potholderz by MF DOOM hot shit aw shit 锅 持有人",
 		},
 	}

@@ -27,7 +27,7 @@
 // passed to biblio.Parse, which will then return a slice of biblio.Matches.
 // For example:
 // bib := biblio.Compile([]string{"foo", "bar", "baz"})
-// bib.Parse("foo bar baz bot") => {"foo", 0, 3}, {"bar", 4, 7}, {"baz", 8, 11}
+// bib.Parse("foo bar baz bot") => {"foo", 0, 3}, {"bar", 4, 3}, {"baz", 8, 3}
 //
 // Let Σ be the alphabet for the patterns passed to biblio.Compile such that
 //   the alphabet represents the set of characters used in the patterns.
@@ -59,7 +59,8 @@ type trie struct {
 }
 
 // Match is a representation of a pattern found in the text.
-// TODO
+// word is the pattern that was matched
+// index is the index in the text of the first character of the matched pattern
 type Match struct {
 	word  string
 	index int
@@ -111,7 +112,7 @@ func (biblio *Biblio) Parse(text string) (matches []Match) {
 			state = 0
 		}
 		for word := range biblio.output[state] {
-			matches = append(matches, Match{word, i})
+			matches = append(matches, Match{word, i - len(word) + 1})
 		}
 	}
 	return
