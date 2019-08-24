@@ -94,9 +94,9 @@ func TestFindAll(t *testing.T) {
 			"ushers",
 		},
 		{
-			[]string{"they", "their", "theyre", "the", "tea", "te", "team", "go", "goo", "good"},
-			[]Match{{"the", 0}, {"they", 0}, {"theyre", 0}, {"go", 13}, {"goo", 13}, {"good", 13}, {"te", 18}, {"tea", 18}, {"team", 18}},
-			"theyre not a good team",
+			[]string{"they", "their", "theyre", "the", "tea", "te", "team", "go", "goo", "good", "oode"},
+			[]Match{{"the", 0}, {"they", 0}, {"theyre", 0}, {"go", 13}, {"goo", 13}, {"good", 13}, {"oode", 14}, {"te", 19}, {"tea", 19}, {"team", 19}},
+			"theyre not a goode team",
 		},
 		{
 			[]string{"a"},
