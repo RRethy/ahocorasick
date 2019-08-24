@@ -98,11 +98,26 @@ func TestParse(t *testing.T) {
 			[]Match{{"the", 2}, {"they", 3}, {"theyre", 5}, {"go", 14}, {"goo", 15}, {"good", 16}, {"te", 19}, {"tea", 20}, {"team", 21}},
 			"theyre not a good team",
 		},
+		{
+			[]string{"a"},
+			[]Match{{"a", 0}, {"a", 1}, {"a", 2}, {"a", 5}, {"a", 7}, {"a", 9}, {"a", 11}},
+			"aaabbabababa",
+		},
+		{
+			[]string{},
+			[]Match{},
+			"there is no patterns",
+		},
+		{
+			[]string{"锅", "持有人", "potholderz", "MF DOOM"},
+			[]Match{{"potholderz", 9}, {"MF DOOM", 20}, {"锅", 39}, {"持有人", 49}},
+			"potholderz by MF DOOM hot shit aw shit 锅 持有人",
+		},
 	}
 	for _, test := range tests {
 		bib := Compile(test.patterns)
 		got := bib.Parse(test.text)
-		if !reflect.DeepEqual(got, test.expected) {
+		if !(len(got) == 0 && len(test.expected) == 0) && !reflect.DeepEqual(got, test.expected) {
 			t.Errorf(`
 Expected: %v
 Got:      %v
