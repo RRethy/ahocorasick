@@ -66,13 +66,13 @@ package biblio
 
 // Biblio is the representation of a compiled set of patterns.
 type Biblio struct {
-	next   map[int]map[rune]int    // state => { transition character => state }
-	output map[int]map[string]bool // state => set of words which terminate at state
+	next   []map[byte]int // state => { transition character => state }
+	output map[int]map[string]bool
 }
 
 // trie is a simple trie representation used to construct the required dfa
 type trie struct {
-	tree map[int]map[rune]int
+	tree []map[byte]int
 }
 
 // Match is a representation of a pattern found in the text.
@@ -85,7 +85,7 @@ type Match struct {
 
 // Compile creates a Biblio for use in parsing. A state machine will be created
 // which can be used for linear time parsing of a text.
-func Compile(words []string) *Biblio {
+func Compile(words [][]byte) *Biblio {
 	biblio := new(Biblio)
 	if len(words) == 0 {
 		return biblio
@@ -93,7 +93,6 @@ func Compile(words []string) *Biblio {
 
 	// create the trie from each word in words
 	t := trie{}
-	t.tree = map[int]map[rune]int{}
 	biblio.output = map[int]map[string]bool{}
 	for _, word := range words {
 		t.add(word, &biblio.output)
@@ -101,9 +100,8 @@ func Compile(words []string) *Biblio {
 
 	// t.tree is a subgraph of biblio.next. It is used as the starting graph
 	// for it which then as additional edges added in buildNextFunc.
-	biblio.next = map[int]map[rune]int{}
 	for state, transition := range t.tree {
-		biblio.next[state] = map[rune]int{}
+		biblio.next = append(biblio.next, map[byte]int{})
 		for c, dest := range transition {
 			biblio.next[state][c] = dest
 		}
@@ -116,7 +114,7 @@ func Compile(words []string) *Biblio {
 
 // FindAll returns a slice of biblio.Match which represent each pattern found in
 // text
-func (biblio *Biblio) FindAll(text string) (matches []Match) {
+func (biblio *Biblio) FindAll(text []byte) (matches []Match) {
 	if len(biblio.output) == 0 {
 		return
 	}
@@ -137,10 +135,10 @@ func (biblio *Biblio) FindAll(text string) (matches []Match) {
 
 // add adds a word to the trie t and modifies output which holds information on
 // which state is a word terminating state in the trie
-func (t *trie) add(word string, output *map[int]map[string]bool) {
+func (t *trie) add(word []byte, output *map[int]map[string]bool) {
 	state := 0
-	if len(t.tree) == 0 {
-		t.tree[0] = map[rune]int{}
+	if len(t.tree) == state {
+		t.tree = append(t.tree, map[byte]int{})
 	}
 
 	for _, c := range word {
@@ -149,19 +147,19 @@ func (t *trie) add(word string, output *map[int]map[string]bool) {
 		} else {
 			next = len(t.tree)
 			t.tree[state][c] = next
-			t.tree[next] = map[rune]int{}
+			t.tree = append(t.tree, map[byte]int{})
 			state = next
 		}
 	}
 
-	(*output)[state] = map[string]bool{word: true}
+	(*output)[state] = map[string]bool{string(word): true}
 }
 
 // builds the finited state machine, biblio.next
 func (biblio *Biblio) buildNextFunc(t *trie) {
 	type statedata struct {
 		state           int
-		transition      rune
+		transition      byte
 		parentFailState int
 		level           int
 	}

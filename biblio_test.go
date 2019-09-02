@@ -7,20 +7,20 @@ import (
 
 func TestCompile(t *testing.T) {
 	tests := []struct {
-		input  []string
-		next   map[int]map[rune]int
+		input  [][]byte
+		next   []map[byte]int
 		output map[int]map[string]bool
 	}{
 		{
-			[]string{"theyre", "they", "the"},
-			map[int]map[rune]int{
-				0: {'t': 1},
-				1: {'h': 2, 't': 1},
-				2: {'e': 3, 't': 1},
-				3: {'y': 4, 't': 1},
-				4: {'r': 5, 't': 1},
-				5: {'e': 6, 't': 1},
-				6: {'t': 1},
+			[][]byte{[]byte("theyre"), []byte("they"), []byte("the")},
+			[]map[byte]int{
+				{'t': 1},
+				{'h': 2, 't': 1},
+				{'e': 3, 't': 1},
+				{'y': 4, 't': 1},
+				{'r': 5, 't': 1},
+				{'e': 6, 't': 1},
+				{'t': 1},
 			},
 			map[int]map[string]bool{
 				3: map[string]bool{"the": true},
@@ -29,18 +29,18 @@ func TestCompile(t *testing.T) {
 			},
 		},
 		{
-			[]string{"he", "she", "his", "hers"},
-			map[int]map[rune]int{
-				0: {'h': 1, 's': 3},
-				1: {'h': 1, 'e': 2, 's': 3, 'i': 6},
-				2: {'h': 1, 's': 3, 'r': 8},
-				3: {'s': 3, 'h': 4},
-				4: {'h': 1, 's': 3, 'e': 5, 'i': 6},
-				5: {'h': 1, 's': 3, 'r': 8},
-				6: {'h': 1, 's': 7},
-				7: {'h': 4, 's': 3},
-				8: {'h': 1, 's': 9},
-				9: {'h': 4, 's': 3},
+			[][]byte{[]byte("he"), []byte("she"), []byte("his"), []byte("hers")},
+			[]map[byte]int{
+				{'h': 1, 's': 3},
+				{'h': 1, 'e': 2, 's': 3, 'i': 6},
+				{'h': 1, 's': 3, 'r': 8},
+				{'s': 3, 'h': 4},
+				{'h': 1, 's': 3, 'e': 5, 'i': 6},
+				{'h': 1, 's': 3, 'r': 8},
+				{'h': 1, 's': 7},
+				{'h': 4, 's': 3},
+				{'h': 1, 's': 9},
+				{'h': 4, 's': 3},
 			},
 			map[int]map[string]bool{
 				2: map[string]bool{"he": true},
@@ -50,15 +50,15 @@ func TestCompile(t *testing.T) {
 			},
 		},
 		{
-			[]string{},
-			map[int]map[rune]int{},
+			[][]byte{},
+			[]map[byte]int{},
 			map[int]map[string]bool{},
 		},
 		{
-			[]string{"h"},
-			map[int]map[rune]int{
-				0: {'h': 1},
-				1: {'h': 1},
+			[][]byte{[]byte("h")},
+			[]map[byte]int{
+				{'h': 1},
+				{'h': 1},
 			},
 			map[int]map[string]bool{
 				1: map[string]bool{"h": true},
@@ -84,34 +84,34 @@ Got:      %v`, test.output, got.output)
 
 func TestFindAll(t *testing.T) {
 	tests := []struct {
-		patterns []string
+		patterns [][]byte
 		expected []Match
-		text     string
+		text     []byte
 	}{
 		{
-			[]string{"he", "she", "his", "hers"},
+			[][]byte{[]byte("he"), []byte("she"), []byte("his"), []byte("hers")},
 			[]Match{{"she", 1}, {"he", 2}, {"hers", 2}},
-			"ushers",
+			[]byte("ushers"),
 		},
 		{
-			[]string{"they", "their", "theyre", "the", "tea", "te", "team", "go", "goo", "good", "oode"},
+			[][]byte{[]byte("they"), []byte("their"), []byte("theyre"), []byte("the"), []byte("tea"), []byte("te"), []byte("team"), []byte("go"), []byte("goo"), []byte("good"), []byte("oode")},
 			[]Match{{"the", 0}, {"they", 0}, {"theyre", 0}, {"go", 13}, {"goo", 13}, {"good", 13}, {"oode", 14}, {"te", 19}, {"tea", 19}, {"team", 19}},
-			"theyre not a goode team",
+			[]byte("theyre not a goode team"),
 		},
 		{
-			[]string{"a"},
+			[][]byte{[]byte("a")},
 			[]Match{{"a", 0}, {"a", 1}, {"a", 2}, {"a", 5}, {"a", 7}, {"a", 9}, {"a", 11}},
-			"aaabbabababa",
+			[]byte("aaabbabababa"),
 		},
 		{
-			[]string{},
+			[][]byte{},
 			[]Match{},
-			"there is no patterns",
+			[]byte("there is no patterns"),
 		},
 		{
-			[]string{"锅", "持有人", "potholderz", "MF DOOM"},
-			[]Match{{"potholderz", 0}, {"MF DOOM", 14}, {"锅", 37}, {"持有人", 41}},
-			"potholderz by MF DOOM hot shit aw shit 锅 持有人",
+			[][]byte{[]byte("锅"), []byte("持有人"), []byte("potholderz"), []byte("MF DOOM")},
+			[]Match{{"potholderz", 0}, {"MF DOOM", 14}, {"锅", 39}, {"持有人", 43}},
+			[]byte("potholderz by MF DOOM hot shit aw shit 锅 持有人"),
 		},
 	}
 	for _, test := range tests {
@@ -128,46 +128,46 @@ Got:      %v
 
 func BenchmarkCompile(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		Compile([]string{
-			"he",
-			"she",
-			"they",
-			"their",
-			"where",
-			"bear",
-			"taratula",
-			"adam",
-			"regard-rethy",
-			"panda",
-			"bear",
-			"golang",
-			"his",
-			"hers",
-			"her",
+		Compile([][]byte{
+			[]byte("he"),
+			[]byte("she"),
+			[]byte("they"),
+			[]byte("their"),
+			[]byte("where"),
+			[]byte("bear"),
+			[]byte("taratula"),
+			[]byte("adam"),
+			[]byte("regard-rethy"),
+			[]byte("panda"),
+			[]byte("bear"),
+			[]byte("golang"),
+			[]byte("his"),
+			[]byte("hers"),
+			[]byte("her"),
 		})
 	}
 }
 
 func BenchmarkFindAll(b *testing.B) {
-	bib := Compile([]string{
-		"he",
-		"she",
-		"they",
-		"their",
-		"where",
-		"bear",
-		"taratula",
-		"adam",
-		"regard-rethy",
-		"panda",
-		"bear",
-		"golang",
-		"his",
-		"hers",
-		"her",
+	bib := Compile([][]byte{
+		[]byte("he"),
+		[]byte("she"),
+		[]byte("they"),
+		[]byte("their"),
+		[]byte("where"),
+		[]byte("bear"),
+		[]byte("taratula"),
+		[]byte("adam"),
+		[]byte("regard-rethy"),
+		[]byte("panda"),
+		[]byte("bear"),
+		[]byte("golang"),
+		[]byte("his"),
+		[]byte("hers"),
+		[]byte("her"),
 	})
 	for i := 0; i < b.N; i++ {
-		bib.FindAll(`
+		bib.FindAll([]byte(`
 ushers golang to     be rrrrrrrr tartula taratulapandawhere
 ushers golang to     be rrrrrrrr tartula taratulapandawhere
 ushers golang to     be rrrrrrrr tartula taratulapandawhere
@@ -179,6 +179,6 @@ ushers golang to     be rrrrrrrr tartula taratulapandawhere
 ushers golang to     be rrrrrrrr tartula taratulapandawhere
 ushers golang to     be rrrrrrrr tartula taratulapandawhere
 ushers golang to     be rrrrrrrr tartula taratulapandawhere
-	`)
+	`))
 	}
 }
