@@ -1,4 +1,4 @@
-package biblio
+package main
 
 import (
 	"reflect"
