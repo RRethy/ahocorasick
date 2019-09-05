@@ -40,12 +40,9 @@ func compileMatcher(words []string) (*matcher, error) {
 
 		base := m.findBase(edges)
 		m.base[node.state] = base
-		for _, edge := range edges {
-			m.check[base+int(edge)] = node.state + 1
-		}
-
 		i := 0
 		for _, edge := range edges {
+			m.check[base+int(edge)] = node.state + 1
 			newnode := tnode{base + int(edge), []string{}}
 			for i < len(node.suffixes) && node.suffixes[i][0] == edge {
 				if len(node.suffixes[i]) > 1 {
