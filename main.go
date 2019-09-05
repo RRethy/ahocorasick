@@ -41,7 +41,6 @@ func compileMatcher(words []string) (*matcher, error) {
 		base := m.findBase(edges)
 		m.base[node.state] = base
 		for _, edge := range edges {
-			fmt.Println(base + int(edge))
 			m.check[base+int(edge)] = node.state + 1
 		}
 
@@ -62,32 +61,22 @@ func compileMatcher(words []string) (*matcher, error) {
 }
 
 func (m *matcher) findBase(edges []byte) int {
-	fmt.Printf("%v\n", m.base)
-	fmt.Printf("%v\n", m.check)
 	if len(edges) == 0 {
 		return -300
-	} else if len(edges) == 1 {
-		for i, slot := range m.check[1:] {
-			if slot == 0 {
-				return i - int(edges[0]) + 1
-			}
-		}
-		m.increaseSize(1)
-		return len(m.base) - 1 - int(edges[0])
-	} else if len(edges) == 2 {
+	} else if len(edges) < 3 {
 		e0 := int(edges[0])
-		e1 := int(edges[1])
+		e1 := int(edges[len(edges)-1])
+		dx := e1 - e0
 
 		for i, slot := range m.check[1:] {
-			if i+e1-e0+1 >= len(m.check) {
+			if i+dx+1 >= len(m.check) {
 				break
 			}
-
-			if slot == 0 && m.check[i+e1-e0+1] == 0 {
+			if slot == 0 && m.check[i+dx+1] == 0 {
 				return i - int(edges[0]) + 1
 			}
 		}
-		m.increaseSize(e1 - e0 + 1)
+		m.increaseSize(dx + 1)
 		return len(m.base) - 1 - e1
 	}
 	i := len(m.base) - 1
@@ -116,13 +105,14 @@ func hasPath(word []byte, m *matcher) bool {
 }
 
 func main() {
-	m, _ := compileMatcher([]string{"hers", "she"})
-	// m, _ := compileMatcher([]string{"he", "hers", "his", "she"})
+	// m, _ := compileMatcher([]string{"hers", "she"})
+	m, _ := compileMatcher([]string{"he", "hers", "his", "she", "be"})
 
 	fmt.Println(hasPath([]byte("hers"), m))
 	fmt.Println(hasPath([]byte("she"), m))
 	fmt.Println(hasPath([]byte("his"), m))
 	fmt.Println(hasPath([]byte("he"), m))
+	fmt.Println(hasPath([]byte("be"), m))
 	fmt.Println(hasPath([]byte("herss"), m))
 
 	fmt.Printf("%v\n", m.base)
