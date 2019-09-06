@@ -8,6 +8,7 @@ import (
 type matcher struct {
 	base   []int
 	check  []int
+	fail   []int
 	output map[int]string
 }
 
@@ -15,6 +16,7 @@ func compileMatcher(words []string) (*matcher, error) {
 	m := new(matcher)
 	m.base = append(m.base, 0)
 	m.check = append(m.check, 0)
+	m.fail = append(m.fail, 0)
 
 	type tnode struct {
 		state    int
@@ -41,9 +43,22 @@ func compileMatcher(words []string) (*matcher, error) {
 		base := m.findBase(edges)
 		m.base[node.state] = base
 		i := 0
+		parentFailState := m.fail[node.state]
 		for _, edge := range edges {
-			m.check[base+int(edge)] = node.state + 1
-			newnode := tnode{base + int(edge), []string{}}
+			edgeVal := int(edge)
+
+			m.check[base+edgeVal] = node.state + 1
+			if node.state != 0 {
+				parentFailContd := m.base[parentFailState] + edgeVal
+				rootContd := m.base[0] + edgeVal
+				if parentFailContd < len(m.check) && m.check[parentFailContd] == parentFailState {
+					m.fail[base+edgeVal] = m.base[parentFailState] + edgeVal
+				} else if rootContd < len(m.check) && m.check[rootContd] == 0 {
+					m.fail[base+edgeVal] = m.base[0] + edgeVal
+				}
+			}
+
+			newnode := tnode{base + edgeVal, []string{}}
 			for i < len(node.suffixes) && node.suffixes[i][0] == edge {
 				if len(node.suffixes[i]) > 1 {
 					newnode.suffixes = append(newnode.suffixes, node.suffixes[i][1:])
@@ -60,30 +75,37 @@ func compileMatcher(words []string) (*matcher, error) {
 func (m *matcher) findBase(edges []byte) int {
 	if len(edges) == 0 {
 		return -300
-	} else if len(edges) < 3 {
-		e0 := int(edges[0])
-		e1 := int(edges[len(edges)-1])
-		dx := e1 - e0
+	}
+	min := int(edges[0])
+	max := int(edges[len(edges)-1])
+	width := max - min
 
-		for i, slot := range m.check[1:] {
-			if i+dx+1 >= len(m.check) {
+	for i := range m.check[1:] {
+		i++ // fix i since we are using range [1:]
+		if i+width >= len(m.check) {
+			break
+		}
+
+		fits := true
+		for _, e := range edges {
+			if m.check[i+int(e)-min] != 0 {
+				fits = false
 				break
 			}
-			if slot == 0 && m.check[i+dx+1] == 0 {
-				return i - int(edges[0]) + 1
-			}
 		}
-		m.increaseSize(dx + 1)
-		return len(m.base) - 1 - e1
+		if fits {
+			return i - min
+		}
 	}
-	i := len(m.base) - 1
-	m.increaseSize(256)
-	return i
+
+	m.increaseSize(width + 1)
+	return len(m.base) - 1 - max
 }
 
 func (m *matcher) increaseSize(dsize int) {
 	m.base = append(m.base, make([]int, dsize)...)
 	m.check = append(m.check, make([]int, dsize)...)
+	m.fail = append(m.fail, make([]int, dsize)...)
 }
 
 func hasPath(word []byte, m *matcher) bool {
@@ -114,4 +136,5 @@ func main() {
 
 	fmt.Printf("%v\n", m.base)
 	fmt.Printf("%v\n", m.check)
+	fmt.Printf("%v\n", m.fail)
 }
