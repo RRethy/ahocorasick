@@ -51,9 +51,9 @@ func compileMatcher(words []string) (*matcher, error) {
 			if node.state != 0 {
 				parentFailContd := m.base[parentFailState] + edgeVal
 				rootContd := m.base[0] + edgeVal
-				if parentFailContd < len(m.check) && m.check[parentFailContd] == parentFailState {
+				if parentFailContd < len(m.check) && m.check[parentFailContd] == parentFailState+1 {
 					m.fail[base+edgeVal] = m.base[parentFailState] + edgeVal
-				} else if rootContd < len(m.check) && m.check[rootContd] == 0 {
+				} else if rootContd < len(m.check) && m.check[rootContd] == 1 {
 					m.fail[base+edgeVal] = m.base[0] + edgeVal
 				}
 			}
