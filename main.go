@@ -5,11 +5,25 @@ import (
 	"sort"
 )
 
+type indexedStringSlice struct {
+	strs  []string
+	index int
+}
+
+func (sslice *indexedStringSlice) Len() int {
+	return len(sslice.strs)
+}
+func (sslice *indexedStringSlice) Less(i, j int) bool {
+	return sslice.strs[i] < sslice.strs[j]
+}
+func (sslice *indexedStringSlice) Swap(i, j int) {
+	sslice.strs[i], sslice.strs[j] = sslice.strs[j], sslice.strs[i]
+}
+
 type matcher struct {
-	base   []int
-	check  []int
-	fail   []int
-	output map[int]string
+	base  []int
+	check []int
+	fail  []int
 }
 
 func compileMatcher(words []string) (*matcher, error) {
