@@ -24,7 +24,7 @@ type matcher struct {
 	base   []int
 	check  []int
 	fail   []int
-	output [][]byte
+	output map[int][][]byte
 }
 
 func compileMatcher(words [][]byte) (*matcher, error) {
@@ -32,6 +32,7 @@ func compileMatcher(words [][]byte) (*matcher, error) {
 	m.base = append(m.base, 0)
 	m.check = append(m.check, 0)
 	m.fail = append(m.fail, 0)
+	m.output = map[int][][]byte{}
 
 	type tnode struct {
 		state    int
@@ -73,6 +74,8 @@ func compileMatcher(words [][]byte) (*matcher, error) {
 			for i < len(node.suffixes.strs) && node.suffixes.strs[i][depth] == edge {
 				if len(node.suffixes.strs[i]) > depth+1 {
 					newnode.suffixes.strs = append(newnode.suffixes.strs, node.suffixes.strs[i])
+				} else {
+					m.output[newnode.state] = append(m.output[newnode.state], node.suffixes.strs[i])
 				}
 				i++
 			}
@@ -159,4 +162,10 @@ func main() {
 	fmt.Printf("%v\n", m.base)
 	fmt.Printf("%v\n", m.check)
 	fmt.Printf("%v\n", m.fail)
+	for s, words := range m.output {
+		fmt.Printf("%d =>\n", s)
+		for _, word := range words {
+			fmt.Println(string(word))
+		}
+	}
 }
