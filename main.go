@@ -60,22 +60,27 @@ func compileMatcher(words [][]byte) (*matcher, error) {
 		i := 0
 		for _, edge := range edges {
 			offset := int(edge)
+			newState := base + offset
 
-			m.check[base+offset] = node.state + 1
+			m.check[newState] = node.state + 1
 			if node.state != 0 {
 				if m.hasEdge(m.fail[node.state], offset) {
-					m.fail[base+offset] = m.base[m.fail[node.state]] + offset
+					m.fail[newState] = m.base[m.fail[node.state]] + offset
 				} else if m.hasEdge(0, offset) {
-					m.fail[base+offset] = m.base[0] + offset
+					m.fail[newState] = m.base[0] + offset
+				}
+				failState := m.fail[newState]
+				for _, word := range m.output[failState] {
+					m.output[newState] = append(m.output[newState], word)
 				}
 			}
 
-			newnode := tnode{base + offset, indexedStringSlice{[][]byte{}, depth + 1}}
+			newnode := tnode{newState, indexedStringSlice{[][]byte{}, depth + 1}}
 			for i < len(node.suffixes.strs) && node.suffixes.strs[i][depth] == edge {
 				if len(node.suffixes.strs[i]) > depth+1 {
 					newnode.suffixes.strs = append(newnode.suffixes.strs, node.suffixes.strs[i])
 				} else {
-					m.output[newnode.state] = append(m.output[newnode.state], node.suffixes.strs[i])
+					m.output[newState] = append(m.output[newState], node.suffixes.strs[i])
 				}
 				i++
 			}
