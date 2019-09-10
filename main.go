@@ -6,27 +6,28 @@ import (
 )
 
 type indexedStringSlice struct {
-	strs  []string
-	index int
+	strs  [][]byte
+	depth int
 }
 
 func (sslice *indexedStringSlice) Len() int {
 	return len(sslice.strs)
 }
 func (sslice *indexedStringSlice) Less(i, j int) bool {
-	return sslice.strs[i] < sslice.strs[j]
+	return sslice.strs[i][sslice.depth] < sslice.strs[j][sslice.depth]
 }
 func (sslice *indexedStringSlice) Swap(i, j int) {
 	sslice.strs[i], sslice.strs[j] = sslice.strs[j], sslice.strs[i]
 }
 
 type matcher struct {
-	base  []int
-	check []int
-	fail  []int
+	base   []int
+	check  []int
+	fail   []int
+	output [][]byte
 }
 
-func compileMatcher(words []string) (*matcher, error) {
+func compileMatcher(words [][]byte) (*matcher, error) {
 	m := new(matcher)
 	m.base = append(m.base, 0)
 	m.check = append(m.check, 0)
@@ -34,21 +35,19 @@ func compileMatcher(words []string) (*matcher, error) {
 
 	type tnode struct {
 		state    int
-		suffixes []string
+		suffixes indexedStringSlice
 	}
-	queue := []tnode{{0, words}}
+	queue := []tnode{{0, indexedStringSlice{words, 0}}}
 	for len(queue) > 0 {
 		node := queue[0]
 		queue = queue[1:]
+		depth := node.suffixes.depth
 
-		sort.Strings(node.suffixes)
+		// Get all the edges
+		sort.Sort(&node.suffixes)
 		var edges []byte
-		for _, suffix := range node.suffixes {
-			if len(suffix) == 0 {
-				return nil, nil // TODO return an error
-			}
-
-			edge := suffix[0]
+		for _, suffix := range node.suffixes.strs {
+			edge := suffix[depth]
 			if len(edges) == 0 || edges[len(edges)-1] != edge {
 				edges = append(edges, edge)
 			}
@@ -56,26 +55,24 @@ func compileMatcher(words []string) (*matcher, error) {
 
 		base := m.findBase(edges)
 		m.base[node.state] = base
-		i := 0
-		parentFailState := m.fail[node.state]
-		for _, edge := range edges {
-			edgeVal := int(edge)
 
-			m.check[base+edgeVal] = node.state + 1
+		i := 0
+		for _, edge := range edges {
+			offset := int(edge)
+
+			m.check[base+offset] = node.state + 1
 			if node.state != 0 {
-				parentFailContd := m.base[parentFailState] + edgeVal
-				rootContd := m.base[0] + edgeVal
-				if parentFailContd < len(m.check) && m.check[parentFailContd] == parentFailState+1 {
-					m.fail[base+edgeVal] = m.base[parentFailState] + edgeVal
-				} else if rootContd < len(m.check) && m.check[rootContd] == 1 {
-					m.fail[base+edgeVal] = m.base[0] + edgeVal
+				if m.hasEdge(m.fail[node.state], offset) {
+					m.fail[base+offset] = m.base[m.fail[node.state]] + offset
+				} else if m.hasEdge(0, offset) {
+					m.fail[base+offset] = m.base[0] + offset
 				}
 			}
 
-			newnode := tnode{base + edgeVal, []string{}}
-			for i < len(node.suffixes) && node.suffixes[i][0] == edge {
-				if len(node.suffixes[i]) > 1 {
-					newnode.suffixes = append(newnode.suffixes, node.suffixes[i][1:])
+			newnode := tnode{base + offset, indexedStringSlice{[][]byte{}, depth + 1}}
+			for i < len(node.suffixes.strs) && node.suffixes.strs[i][depth] == edge {
+				if len(node.suffixes.strs[i]) > depth+1 {
+					newnode.suffixes.strs = append(newnode.suffixes.strs, node.suffixes.strs[i])
 				}
 				i++
 			}
@@ -122,6 +119,11 @@ func (m *matcher) increaseSize(dsize int) {
 	m.fail = append(m.fail, make([]int, dsize)...)
 }
 
+func (m *matcher) hasEdge(fromState, offset int) bool {
+	toState := m.base[fromState] + offset
+	return toState < len(m.check) && m.check[toState] == fromState+1
+}
+
 func hasPath(word []byte, m *matcher) bool {
 	state := 0
 	for _, b := range word {
@@ -139,7 +141,13 @@ func hasPath(word []byte, m *matcher) bool {
 
 func main() {
 	// m, _ := compileMatcher([]string{"hers", "she"})
-	m, _ := compileMatcher([]string{"he", "hers", "his", "she", "be"})
+	m, _ := compileMatcher([][]byte{
+		[]byte("he"),
+		[]byte("hers"),
+		[]byte("his"),
+		[]byte("she"),
+		[]byte("be"),
+	})
 
 	fmt.Println(hasPath([]byte("hers"), m))
 	fmt.Println(hasPath([]byte("she"), m))
