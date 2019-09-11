@@ -30,7 +30,7 @@ type Matcher struct {
 	Base   []int
 	Check  []int
 	Fail   []int
-	output map[int][][]byte
+	Output map[int][][]byte
 }
 
 // Compile TODO
@@ -39,7 +39,7 @@ func Compile(words [][]byte) *Matcher {
 	m.Base = append(m.Base, 0)
 	m.Check = append(m.Check, 0)
 	m.Fail = append(m.Fail, 0)
-	m.output = map[int][][]byte{}
+	m.Output = map[int][][]byte{}
 
 	// Represents a node in the implicit trie representing words
 	type trienode struct {
@@ -89,10 +89,10 @@ func Compile(words [][]byte) *Matcher {
 					m.Fail[newState] = m.Base[0] + offset
 				}
 
-				// Setup the output function
+				// Setup the Output function
 				failState := m.Fail[newState]
-				for _, word := range m.output[failState] {
-					m.output[newState] = append(m.output[newState], word)
+				for _, word := range m.Output[failState] {
+					m.Output[newState] = append(m.Output[newState], word)
 				}
 			}
 
@@ -102,7 +102,7 @@ func Compile(words [][]byte) *Matcher {
 				if len(node.suffixes.slices[i]) > depth+1 {
 					newnode.suffixes.slices = append(newnode.suffixes.slices, node.suffixes.slices[i])
 				} else {
-					m.output[newState] = append(m.output[newState], node.suffixes.slices[i])
+					m.Output[newState] = append(m.Output[newState], node.suffixes.slices[i])
 				}
 				i++
 			}
@@ -195,7 +195,7 @@ func (m *Matcher) FindAll(text []byte) (matches []Match) {
 		if m.hasEdge(state, offset) {
 			state = m.Base[state] + offset
 		}
-		for _, word := range m.output[state] {
+		for _, word := range m.Output[state] {
 			matches = append(matches, Match{word, i})
 		}
 	}
@@ -225,7 +225,7 @@ func (m *Matcher) FindAll(text []byte) (matches []Match) {
 // 	fmt.Printf("%v\n", m.Base)
 // 	fmt.Printf("%v\n", m.Check)
 // 	fmt.Printf("%v\n", m.Fail)
-// 	for s, words := range m.output {
+// 	for s, words := range m.Output {
 // 		fmt.Printf("%d =>\n", s)
 // 		for _, word := range words {
 // 			fmt.Println(string(word))
