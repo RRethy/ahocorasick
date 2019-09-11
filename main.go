@@ -1,7 +1,6 @@
 package biblio
 
 import (
-	"fmt"
 	"sort"
 )
 
@@ -36,7 +35,7 @@ type Matcher struct {
 
 // Compile TODO
 func Compile(words [][]byte) *Matcher {
-	m := new(matcher)
+	m := new(Matcher)
 	m.base = append(m.base, 0)
 	m.check = append(m.check, 0)
 	m.fail = append(m.fail, 0)
@@ -111,10 +110,10 @@ func Compile(words [][]byte) *Matcher {
 		}
 	}
 
-	return m, nil
+	return m
 }
 
-func (m *matcher) findBase(edges []byte) int {
+func (m *Matcher) findBase(edges []byte) int {
 	if len(edges) == 0 {
 		return LEAF
 	}
@@ -144,18 +143,18 @@ func (m *matcher) findBase(edges []byte) int {
 	return len(m.base) - 1 - max
 }
 
-func (m *matcher) increaseSize(dsize int) {
+func (m *Matcher) increaseSize(dsize int) {
 	m.base = append(m.base, make([]int, dsize)...)
 	m.check = append(m.check, make([]int, dsize)...)
 	m.fail = append(m.fail, make([]int, dsize)...)
 }
 
-func (m *matcher) hasEdge(fromState, offset int) bool {
+func (m *Matcher) hasEdge(fromState, offset int) bool {
 	toState := m.base[fromState] + offset
 	return toState >= 0 && toState < len(m.check) && m.check[toState] == fromState+1
 }
 
-func hasPath(word []byte, m *matcher) bool {
+func hasPath(word []byte, m *Matcher) bool {
 	state := 0
 	for _, b := range word {
 		base := m.base[state]
@@ -170,12 +169,14 @@ func hasPath(word []byte, m *matcher) bool {
 	return true
 }
 
-type match struct {
+// Match TODO
+type Match struct {
 	word  []byte
 	index int
 }
 
-func (m *matcher) findAll(text []byte) (matches []match) {
+// FindAll TODO
+func (m *Matcher) FindAll(text []byte) (matches []Match) {
 	state := 0
 	for i, b := range text {
 		offset := int(b)
@@ -201,39 +202,39 @@ func (m *matcher) findAll(text []byte) (matches []match) {
 	return
 }
 
-func main() {
-	// m, _ := Compile([]string{"hers", "she"})
-	m := Compile([][]byte{
-		[]byte("he"),
-		[]byte("she"),
-		[]byte("they"),
-		[]byte("their"),
-		[]byte("where"),
-		[]byte("bear"),
-		[]byte("taratula"),
-		[]byte("adam"),
-		[]byte("regard-rethy"),
-		[]byte("panda"),
-		[]byte("bear"),
-		[]byte("golang"),
-		[]byte("his"),
-		[]byte("hers"),
-		[]byte("her"),
-	})
+// func main() {
+// 	// m, _ := Compile([]string{"hers", "she"})
+// 	m := Compile([][]byte{
+// 		[]byte("he"),
+// 		[]byte("she"),
+// 		[]byte("they"),
+// 		[]byte("their"),
+// 		[]byte("where"),
+// 		[]byte("bear"),
+// 		[]byte("taratula"),
+// 		[]byte("adam"),
+// 		[]byte("regard-rethy"),
+// 		[]byte("panda"),
+// 		[]byte("bear"),
+// 		[]byte("golang"),
+// 		[]byte("his"),
+// 		[]byte("hers"),
+// 		[]byte("her"),
+// 	})
 
-	fmt.Printf("%v\n", m.base)
-	fmt.Printf("%v\n", m.check)
-	fmt.Printf("%v\n", m.fail)
-	for s, words := range m.output {
-		fmt.Printf("%d =>\n", s)
-		for _, word := range words {
-			fmt.Println(string(word))
-		}
-	}
+// 	fmt.Printf("%v\n", m.base)
+// 	fmt.Printf("%v\n", m.check)
+// 	fmt.Printf("%v\n", m.fail)
+// 	for s, words := range m.output {
+// 		fmt.Printf("%d =>\n", s)
+// 		for _, word := range words {
+// 			fmt.Println(string(word))
+// 		}
+// 	}
 
-	fmt.Println("beshe hers ")
-	matches := m.findAll([]byte("beshe hers "))
-	for _, match := range matches {
-		fmt.Printf("%d - %s\n", match.index, string(match.word))
-	}
-}
+// 	fmt.Println("beshe hers ")
+// 	matches := m.findAll([]byte("beshe hers "))
+// 	for _, match := range matches {
+// 		fmt.Printf("%d - %s\n", match.index, string(match.word))
+// 	}
+// }
