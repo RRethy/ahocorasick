@@ -1,219 +1,240 @@
-// Copyright 2019 Adam P. Regasz-Rethy
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy of
-// this software and associated documentation files (the "Software"), to deal in
-// the Software without restriction, including without limitation the rights to
-// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-// of the Software, and to permit persons to whom the Software is furnished to do
-// so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-
-// Package biblio implements the aho-corasick pattern matching algorithm.  For
-// more information on the algorithm, see the academic paper published by
-// Alfred V. Aho and Margaret J. Corasick which is freely available at
-// https://cr.yp.to/bib/1975/aho.pdf.
-//
-// Terminology used corresponds to the terminology used in the aforementioned
-// paper.
-// This package uses uses a modified version of algorithm 2 to construct the
-// goto function, trie.tree, and partially constructs the output function,
-// Biblio.output. Then it uses a modified version of algorithm 4 to construct
-// the next function, Biblio.next, which lets us ignore algorithm 3 and the
-// failure function. This has a negative effect on compile time which is
-// benchmarked and can be viewed by running `git log --grep=BenchmarkCompile`.
-// The benefit of using algorithm 4 and the next function is the faster parsing
-// since we don't need to do any failure transitions, this has benchmarks
-// available for viewing with `git log --grep=BenchmarkParse`.
-//
-// UTF-8 is fully supported since all transitions are represented using the
-// rune type.
-//
-// There are two public facing datatypes, biblio.Biblio and biblio.Match. To
-// construct a Biblio, one must first call biblio.OldCompile and pass it a slice
-// of strings which are the patterns that will be looked for. Under the hood,
-// biblio.OldCompile will construct a finite state machine. Then, a string can be
-// passed to biblio.FindAll, which will then return a slice of biblio.Matches.
-// For example:
-// bib := biblio.OldCompile([]string{"foo", "bar", "baz"})
-// bib.FindAll("foo bar baz bot") => {"foo", 0, 3}, {"bar", 4, 3}, {"baz", 8, 3}
-//
-// Let Σ be the alphabet for the patterns passed to biblio.OldCompile such that
-//   the alphabet represents the set of characters used in the patterns.
-// Let total_pats_len be the sum of the lengths of all patterns passed to
-//   biblio.OldCompile
-// Let max be the length of the longest pattern passed to biblio.OldCompile
-// let n be the number of patterns passed to biblio.OldCompile
-// Let m be the number of matches
-//
-// Time Complexity:
-// biblio.OldCompile: O(|Σ|*total_pats_len)
-// biblio.Biblio.FindAll(text): Θ(len(text))
-//
-// Space Complexity:
-// biblio.OldCompile: O(|Σ|*n*max)
-// biblio.Biblio.FindAll: Θ(m)
 package biblio
 
-// Biblio is the representation of a compiled set of patterns.
-type Biblio struct {
-	next   []map[byte]int // state => { transition character => state }
-	output map[int]map[string]bool
+import (
+	"sort"
+)
+
+const (
+	// LEAF represents a leaf on the trie
+	// This must be <255 since the offsets used are in [0,255]
+	LEAF = -1867
+)
+
+type indexedStringSlice struct {
+	slices [][]byte
+	depth  int
 }
 
-// trie is a simple trie representation used to construct the required dfa
-type trie struct {
-	tree []map[byte]int
+func (sslice *indexedStringSlice) Len() int {
+	return len(sslice.slices)
+}
+func (sslice *indexedStringSlice) Less(i, j int) bool {
+	return sslice.slices[i][sslice.depth] < sslice.slices[j][sslice.depth]
+}
+func (sslice *indexedStringSlice) Swap(i, j int) {
+	sslice.slices[i], sslice.slices[j] = sslice.slices[j], sslice.slices[i]
 }
 
-// Match is a representation of a pattern found in the text.
-// Word is the pattern that was matched
-// Index is the index in the text of the first character of the matched pattern
+// Matcher TODO
+type Matcher struct {
+	Base   []int
+	Check  []int
+	Fail   []int
+	output map[int][][]byte
+}
+
+// Compile TODO
+func Compile(words [][]byte) *Matcher {
+	m := new(Matcher)
+	m.Base = append(m.Base, 0)
+	m.Check = append(m.Check, 0)
+	m.Fail = append(m.Fail, 0)
+	m.output = map[int][][]byte{}
+
+	// Represents a node in the implicit trie representing words
+	type trienode struct {
+		state    int
+		suffixes indexedStringSlice
+	}
+	queue := []trienode{{0, indexedStringSlice{words, 0}}}
+	for len(queue) > 0 {
+		node := queue[0]
+		queue = queue[1:]
+		depth := node.suffixes.depth
+
+		// Get all the edges in lexicographical order
+		var edges []byte
+		sort.Sort(&node.suffixes)
+		for _, suffix := range node.suffixes.slices {
+			edge := suffix[depth]
+			if len(edges) == 0 || edges[len(edges)-1] != edge {
+				edges = append(edges, edge)
+			}
+		}
+
+		// Calculate a suitable Base value where each edge will fit into the
+		// double array trie
+		Base := m.findBase(edges)
+		m.Base[node.state] = Base
+
+		i := 0
+		for _, edge := range edges {
+			offset := int(edge)
+			newState := Base + offset
+
+			// Setup the state=Check[Base[state]+offset] identity so we know
+			// this edge exists in the trie
+			// We always increase the state held in Check by 1 to avoid zero
+			// values
+			m.Check[newState] = node.state + 1
+
+			// Setup the Fail function for the child nodes. This Check will
+			// ensure nodes at level 0 and level 1 have a Fail state of 0
+			if node.state != 0 {
+				if m.hasEdge(m.Fail[node.state], offset) {
+					// We can continue from the Fail state of the parent
+					m.Fail[newState] = m.Base[m.Fail[node.state]] + offset
+				} else if m.hasEdge(0, offset) {
+					// We can continue from the Fail state of root
+					m.Fail[newState] = m.Base[0] + offset
+				}
+
+				// Setup the output function
+				failState := m.Fail[newState]
+				for _, word := range m.output[failState] {
+					m.output[newState] = append(m.output[newState], word)
+				}
+			}
+
+			// Add the child nodes to the queue to continue down the BFS
+			newnode := trienode{newState, indexedStringSlice{[][]byte{}, depth + 1}}
+			for i < len(node.suffixes.slices) && node.suffixes.slices[i][depth] == edge {
+				if len(node.suffixes.slices[i]) > depth+1 {
+					newnode.suffixes.slices = append(newnode.suffixes.slices, node.suffixes.slices[i])
+				} else {
+					m.output[newState] = append(m.output[newState], node.suffixes.slices[i])
+				}
+				i++
+			}
+			queue = append(queue, newnode)
+		}
+	}
+
+	return m
+}
+
+func (m *Matcher) findBase(edges []byte) int {
+	if len(edges) == 0 {
+		return LEAF
+	}
+	min := int(edges[0])
+	max := int(edges[len(edges)-1])
+	width := max - min
+
+	for i := range m.Check[1:] {
+		i++ // fix i since we are using range [1:], simplifies calculations
+		if i+width >= len(m.Check) {
+			break
+		}
+
+		fits := true
+		for _, e := range edges {
+			if m.Check[i+int(e)-min] != 0 {
+				fits = false
+				break
+			}
+		}
+		if fits {
+			return i - min
+		}
+	}
+
+	m.increaseSize(width + 1)
+	return len(m.Base) - 1 - max
+}
+
+func (m *Matcher) increaseSize(dsize int) {
+	m.Base = append(m.Base, make([]int, dsize)...)
+	m.Check = append(m.Check, make([]int, dsize)...)
+	m.Fail = append(m.Fail, make([]int, dsize)...)
+}
+
+func (m *Matcher) hasEdge(fromState, offset int) bool {
+	toState := m.Base[fromState] + offset
+	return toState >= 0 && toState < len(m.Check) && m.Check[toState] == fromState+1
+}
+
+func hasPath(word []byte, m *Matcher) bool {
+	state := 0
+	for _, b := range word {
+		Base := m.Base[state]
+		if Base == LEAF {
+			return false
+		}
+		if Base+int(b) >= len(m.Check) || m.Check[Base+int(b)]-1 != state {
+			return false
+		}
+		state = Base + int(b)
+	}
+	return true
+}
+
+// Match TODO
 type Match struct {
-	Word  string
+	Word  []byte
 	Index int
 }
 
-// OldCompile creates a Biblio for use in parsing. A state machine will be created
-// which can be used for linear time parsing of a text.
-func OldCompile(words [][]byte) *Biblio {
-	biblio := new(Biblio)
-	if len(words) == 0 {
-		return biblio
-	}
-
-	// create the trie from each word in words
-	t := trie{}
-	biblio.output = map[int]map[string]bool{}
-	for _, word := range words {
-		t.add(word, &biblio.output)
-	}
-
-	// t.tree is a subgraph of biblio.next. It is used as the starting graph
-	// for it which then as additional edges added in buildNextFunc.
-	for state, transition := range t.tree {
-		biblio.next = append(biblio.next, map[byte]int{})
-		for c, dest := range transition {
-			biblio.next[state][c] = dest
-		}
-	}
-
-	biblio.buildNextFunc(&t)
-
-	return biblio
-}
-
-// FindAll returns a slice of biblio.Match which represent each pattern found in
-// text
-func (biblio *Biblio) FindAll(text []byte) (matches []Match) {
+// FindAll TODO
+func (m *Matcher) FindAll(text []byte) (matches []Match) {
 	state := 0
-	for i, c := range text {
-		if next, ok := biblio.next[state][c]; ok {
-			state = next
-		} else {
-			state = 0
+	for i, b := range text {
+		offset := int(b)
+		for {
+			if m.Base[state] == LEAF {
+				state = m.Fail[state]
+			} else if m.hasEdge(state, offset) {
+				state = m.Base[state] + offset
+				break
+			} else if state == 0 {
+				break
+			} else {
+				state = m.Fail[state]
+			}
 		}
-		for word := range biblio.output[state] {
-			matches = append(matches, Match{word, i - len(word) + 1})
+		if m.hasEdge(state, offset) {
+			state = m.Base[state] + offset
+		}
+		for _, word := range m.output[state] {
+			matches = append(matches, Match{word, i})
 		}
 	}
 	return
 }
 
-// add adds a word to the trie t and modifies output which holds information on
-// which state is a word terminating state in the trie
-func (t *trie) add(word []byte, output *map[int]map[string]bool) {
-	state := 0
-	if len(t.tree) == state {
-		t.tree = append(t.tree, map[byte]int{})
-	}
+// func main() {
+// 	// m, _ := Compile([]string{"hers", "she"})
+// 	m := Compile([][]byte{
+// 		[]byte("he"),
+// 		[]byte("she"),
+// 		[]byte("they"),
+// 		[]byte("their"),
+// 		[]byte("where"),
+// 		[]byte("bear"),
+// 		[]byte("taratula"),
+// 		[]byte("adam"),
+// 		[]byte("regard-rethy"),
+// 		[]byte("panda"),
+// 		[]byte("bear"),
+// 		[]byte("golang"),
+// 		[]byte("his"),
+// 		[]byte("hers"),
+// 		[]byte("her"),
+// 	})
 
-	for _, c := range word {
-		if next, ok := t.tree[state][c]; ok {
-			state = next
-		} else {
-			next = len(t.tree)
-			t.tree[state][c] = next
-			t.tree = append(t.tree, map[byte]int{})
-			state = next
-		}
-	}
+// 	fmt.Printf("%v\n", m.Base)
+// 	fmt.Printf("%v\n", m.Check)
+// 	fmt.Printf("%v\n", m.Fail)
+// 	for s, words := range m.output {
+// 		fmt.Printf("%d =>\n", s)
+// 		for _, word := range words {
+// 			fmt.Println(string(word))
+// 		}
+// 	}
 
-	(*output)[state] = map[string]bool{string(word): true}
-}
-
-// builds the finited state machine, biblio.next
-func (biblio *Biblio) buildNextFunc(t *trie) {
-	type statedata struct {
-		state           int
-		transition      byte
-		parentFailState int
-		level           int
-	}
-
-	// will bfs the trie
-	queue := make([]statedata, 1)[:]
-	for len(queue) > 0 {
-		// pop front of queue
-		data := queue[0]
-		queue = queue[1:]
-
-		failstate := 0
-		// if data.state is in level 1 or 0, it has a failure state of 0 for
-		// all transitions
-		//
-		// if not then check if the parent of the current state has failure
-		// state which has the appropriate transition. This occurs for
-		// substring matches. For example, if we were going down the trie
-		// looking at "abc", then fail, then we could continue down the path in
-		// the trie holding "bc"
-		//
-		// if not, then check if state 0 has the appropriate transition. This
-		// occurs for substring matches starting at the current character. For
-		// example, if we were going down the trie looking at "abc", then fail,
-		// then we could continue down the path in the trie holding "c"
-		//
-		// if not, then 0 is the default fail state
-		//
-		// the trie in the previous examples is in fact the next dfa, but can
-		// be treated as a trie for explanations since there is a valid trie
-		// which is a subgraph of the next dfa
-		if data.level > 1 {
-			if state, ok := biblio.next[data.parentFailState][data.transition]; ok {
-				for word := range biblio.output[state] {
-					if _, ok := biblio.output[data.state]; !ok {
-						biblio.output[data.state] = map[string]bool{word: true}
-					} else {
-						biblio.output[data.state][word] = true
-					}
-				}
-				failstate = state
-			} else if state, ok := biblio.next[0][data.transition]; ok {
-				failstate = state
-			}
-		}
-
-		// union the transitions in the fail state with the current state, if
-		// they share a transition character, then the transition of the
-		// current state takes precedence
-		for c, state := range biblio.next[failstate] {
-			if _, ok := biblio.next[data.state][c]; !ok {
-				biblio.next[data.state][c] = state
-			}
-		}
-
-		// continue adding to the queue since we are doing a bfs
-		for c, state := range t.tree[data.state] {
-			queue = append(queue, statedata{state, c, failstate, data.level + 1})
-		}
-	}
-}
+// 	fmt.Println("beshe hers ")
+// 	matches := m.findAll([]byte("beshe hers "))
+// 	for _, match := range matches {
+// 		fmt.Printf("%d - %s\n", match.index, string(match.word))
+// 	}
+// }
