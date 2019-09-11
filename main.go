@@ -5,6 +5,11 @@ import (
 	"sort"
 )
 
+const (
+	// LEAF represents a leaf on the trie
+	LEAF = -1867
+)
+
 type indexedStringSlice struct {
 	strs  [][]byte
 	depth int
