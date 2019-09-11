@@ -1,86 +1,86 @@
-package main
+package biblio
 
 import (
 	"reflect"
 	"testing"
 )
 
-func TestCompile(t *testing.T) {
-	tests := []struct {
-		input  [][]byte
-		next   []map[byte]int
-		output map[int]map[string]bool
-	}{
-		{
-			[][]byte{[]byte("theyre"), []byte("they"), []byte("the")},
-			[]map[byte]int{
-				{'t': 1},
-				{'h': 2, 't': 1},
-				{'e': 3, 't': 1},
-				{'y': 4, 't': 1},
-				{'r': 5, 't': 1},
-				{'e': 6, 't': 1},
-				{'t': 1},
-			},
-			map[int]map[string]bool{
-				3: map[string]bool{"the": true},
-				4: map[string]bool{"they": true},
-				6: map[string]bool{"theyre": true},
-			},
-		},
-		{
-			[][]byte{[]byte("he"), []byte("she"), []byte("his"), []byte("hers")},
-			[]map[byte]int{
-				{'h': 1, 's': 3},
-				{'h': 1, 'e': 2, 's': 3, 'i': 6},
-				{'h': 1, 's': 3, 'r': 8},
-				{'s': 3, 'h': 4},
-				{'h': 1, 's': 3, 'e': 5, 'i': 6},
-				{'h': 1, 's': 3, 'r': 8},
-				{'h': 1, 's': 7},
-				{'h': 4, 's': 3},
-				{'h': 1, 's': 9},
-				{'h': 4, 's': 3},
-			},
-			map[int]map[string]bool{
-				2: map[string]bool{"he": true},
-				5: map[string]bool{"she": true, "he": true},
-				7: map[string]bool{"his": true},
-				9: map[string]bool{"hers": true},
-			},
-		},
-		{
-			[][]byte{},
-			[]map[byte]int{},
-			map[int]map[string]bool{},
-		},
-		{
-			[][]byte{[]byte("h")},
-			[]map[byte]int{
-				{'h': 1},
-				{'h': 1},
-			},
-			map[int]map[string]bool{
-				1: map[string]bool{"h": true},
-			},
-		},
-	}
-	for _, test := range tests {
-		got := Compile(test.input)
+// func TestCompile(t *testing.T) {
+// 	tests := []struct {
+// 		input  [][]byte
+// 		next   []map[byte]int
+// 		output map[int]map[string]bool
+// 	}{
+// 		{
+// 			[][]byte{[]byte("theyre"), []byte("they"), []byte("the")},
+// 			[]map[byte]int{
+// 				{'t': 1},
+// 				{'h': 2, 't': 1},
+// 				{'e': 3, 't': 1},
+// 				{'y': 4, 't': 1},
+// 				{'r': 5, 't': 1},
+// 				{'e': 6, 't': 1},
+// 				{'t': 1},
+// 			},
+// 			map[int]map[string]bool{
+// 				3: map[string]bool{"the": true},
+// 				4: map[string]bool{"they": true},
+// 				6: map[string]bool{"theyre": true},
+// 			},
+// 		},
+// 		{
+// 			[][]byte{[]byte("he"), []byte("she"), []byte("his"), []byte("hers")},
+// 			[]map[byte]int{
+// 				{'h': 1, 's': 3},
+// 				{'h': 1, 'e': 2, 's': 3, 'i': 6},
+// 				{'h': 1, 's': 3, 'r': 8},
+// 				{'s': 3, 'h': 4},
+// 				{'h': 1, 's': 3, 'e': 5, 'i': 6},
+// 				{'h': 1, 's': 3, 'r': 8},
+// 				{'h': 1, 's': 7},
+// 				{'h': 4, 's': 3},
+// 				{'h': 1, 's': 9},
+// 				{'h': 4, 's': 3},
+// 			},
+// 			map[int]map[string]bool{
+// 				2: map[string]bool{"he": true},
+// 				5: map[string]bool{"she": true, "he": true},
+// 				7: map[string]bool{"his": true},
+// 				9: map[string]bool{"hers": true},
+// 			},
+// 		},
+// 		{
+// 			[][]byte{},
+// 			[]map[byte]int{},
+// 			map[int]map[string]bool{},
+// 		},
+// 		{
+// 			[][]byte{[]byte("h")},
+// 			[]map[byte]int{
+// 				{'h': 1},
+// 				{'h': 1},
+// 			},
+// 			map[int]map[string]bool{
+// 				1: map[string]bool{"h": true},
+// 			},
+// 		},
+// 	}
+// 	for _, test := range tests {
+// 		got := Compile(test.input)
 
-		// check for correctly compiled state machine
-		if !(len(test.next) == 0 && len(got.next) == 0) && !reflect.DeepEqual(test.next, got.next) {
-			t.Errorf(`
-Expected: %v
-Got:      %v`, test.next, got.next)
-		}
-		if !(len(test.output) == 0 && len(got.output) == 0) && !reflect.DeepEqual(test.output, got.output) {
-			t.Errorf(`
-Expected: %v
-Got:      %v`, test.output, got.output)
-		}
-	}
-}
+// 		// check for correctly compiled state machine
+// 		if !(len(test.next) == 0 && len(got.next) == 0) && !reflect.DeepEqual(test.next, got.next) {
+// 			t.Errorf(`
+// Expected: %v
+// Got:      %v`, test.next, got.next)
+// 		}
+// 		if !(len(test.output) == 0 && len(got.output) == 0) && !reflect.DeepEqual(test.output, got.output) {
+// 			t.Errorf(`
+// Expected: %v
+// Got:      %v`, test.output, got.output)
+// 		}
+// 	}
+// }
 
 func TestFindAll(t *testing.T) {
 	tests := []struct {
@@ -126,27 +126,27 @@ Got:      %v
 	}
 }
 
-func BenchmarkCompile(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		Compile([][]byte{
-			[]byte("he"),
-			[]byte("she"),
-			[]byte("they"),
-			[]byte("their"),
-			[]byte("where"),
-			[]byte("bear"),
-			[]byte("taratula"),
-			[]byte("adam"),
-			[]byte("regard-rethy"),
-			[]byte("panda"),
-			[]byte("bear"),
-			[]byte("golang"),
-			[]byte("his"),
-			[]byte("hers"),
-			[]byte("her"),
-		})
-	}
-}
+// func BenchmarkCompile(b *testing.B) {
+// 	for i := 0; i < b.N; i++ {
+// 		Compile([][]byte{
+// 			[]byte("he"),
+// 			[]byte("she"),
+// 			[]byte("they"),
+// 			[]byte("their"),
+// 			[]byte("where"),
+// 			[]byte("bear"),
+// 			[]byte("taratula"),
+// 			[]byte("adam"),
+// 			[]byte("regard-rethy"),
+// 			[]byte("panda"),
+// 			[]byte("bear"),
+// 			[]byte("golang"),
+// 			[]byte("his"),
+// 			[]byte("hers"),
+// 			[]byte("her"),
+// 		})
+// 	}
+// }
 
 func BenchmarkFindAll(b *testing.B) {
 	bib := Compile([][]byte{

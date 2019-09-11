@@ -1,4 +1,4 @@
-package main
+package biblio
 
 import (
 	"fmt"
@@ -7,58 +7,64 @@ import (
 
 const (
 	// LEAF represents a leaf on the trie
+	// This must be <255 since the offsets used are in [0,255]
 	LEAF = -1867
 )
 
 type indexedStringSlice struct {
-	strs  [][]byte
-	depth int
+	slices [][]byte
+	depth  int
 }
 
 func (sslice *indexedStringSlice) Len() int {
-	return len(sslice.strs)
+	return len(sslice.slices)
 }
 func (sslice *indexedStringSlice) Less(i, j int) bool {
-	return sslice.strs[i][sslice.depth] < sslice.strs[j][sslice.depth]
+	return sslice.slices[i][sslice.depth] < sslice.slices[j][sslice.depth]
 }
 func (sslice *indexedStringSlice) Swap(i, j int) {
-	sslice.strs[i], sslice.strs[j] = sslice.strs[j], sslice.strs[i]
+	sslice.slices[i], sslice.slices[j] = sslice.slices[j], sslice.slices[i]
 }
 
-type matcher struct {
+// Matcher TODO
+type Matcher struct {
 	base   []int
 	check  []int
 	fail   []int
 	output map[int][][]byte
 }
 
-func compileMatcher(words [][]byte) (*matcher, error) {
+// Compile TODO
+func Compile(words [][]byte) *Matcher {
 	m := new(matcher)
 	m.base = append(m.base, 0)
 	m.check = append(m.check, 0)
 	m.fail = append(m.fail, 0)
 	m.output = map[int][][]byte{}
 
-	type tnode struct {
+	// Represents a node in the implicit trie representing words
+	type trienode struct {
 		state    int
 		suffixes indexedStringSlice
 	}
-	queue := []tnode{{0, indexedStringSlice{words, 0}}}
+	queue := []trienode{{0, indexedStringSlice{words, 0}}}
 	for len(queue) > 0 {
 		node := queue[0]
 		queue = queue[1:]
 		depth := node.suffixes.depth
 
-		// Get all the edges
-		sort.Sort(&node.suffixes)
+		// Get all the edges in lexicographical order
 		var edges []byte
-		for _, suffix := range node.suffixes.strs {
+		sort.Sort(&node.suffixes)
+		for _, suffix := range node.suffixes.slices {
 			edge := suffix[depth]
 			if len(edges) == 0 || edges[len(edges)-1] != edge {
 				edges = append(edges, edge)
 			}
 		}
 
+		// Calculate a suitable base value where each edge will fit into the
+		// double array trie
 		base := m.findBase(edges)
 		m.base[node.state] = base
 
@@ -67,25 +73,37 @@ func compileMatcher(words [][]byte) (*matcher, error) {
 			offset := int(edge)
 			newState := base + offset
 
+			// Setup the state=check[base[state]+offset] identity so we know
+			// this edge exists in the trie
+			// We always increase the state held in check by 1 to avoid zero
+			// values
 			m.check[newState] = node.state + 1
+
+			// Setup the fail function for the child nodes. This check will
+			// ensure nodes at level 0 and level 1 have a fail state of 0
 			if node.state != 0 {
 				if m.hasEdge(m.fail[node.state], offset) {
+					// We can continue from the fail state of the parent
 					m.fail[newState] = m.base[m.fail[node.state]] + offset
 				} else if m.hasEdge(0, offset) {
+					// We can continue from the fail state of root
 					m.fail[newState] = m.base[0] + offset
 				}
+
+				// Setup the output function
 				failState := m.fail[newState]
 				for _, word := range m.output[failState] {
 					m.output[newState] = append(m.output[newState], word)
 				}
 			}
 
-			newnode := tnode{newState, indexedStringSlice{[][]byte{}, depth + 1}}
-			for i < len(node.suffixes.strs) && node.suffixes.strs[i][depth] == edge {
-				if len(node.suffixes.strs[i]) > depth+1 {
-					newnode.suffixes.strs = append(newnode.suffixes.strs, node.suffixes.strs[i])
+			// Add the child nodes to the queue to continue down the BFS
+			newnode := trienode{newState, indexedStringSlice{[][]byte{}, depth + 1}}
+			for i < len(node.suffixes.slices) && node.suffixes.slices[i][depth] == edge {
+				if len(node.suffixes.slices[i]) > depth+1 {
+					newnode.suffixes.slices = append(newnode.suffixes.slices, node.suffixes.slices[i])
 				} else {
-					m.output[newState] = append(m.output[newState], node.suffixes.strs[i])
+					m.output[newState] = append(m.output[newState], node.suffixes.slices[i])
 				}
 				i++
 			}
@@ -98,14 +116,14 @@ func compileMatcher(words [][]byte) (*matcher, error) {
 
 func (m *matcher) findBase(edges []byte) int {
 	if len(edges) == 0 {
-		return -300
+		return LEAF
 	}
 	min := int(edges[0])
 	max := int(edges[len(edges)-1])
 	width := max - min
 
 	for i := range m.check[1:] {
-		i++ // fix i since we are using range [1:]
+		i++ // fix i since we are using range [1:], simplifies calculations
 		if i+width >= len(m.check) {
 			break
 		}
@@ -141,7 +159,7 @@ func hasPath(word []byte, m *matcher) bool {
 	state := 0
 	for _, b := range word {
 		base := m.base[state]
-		if base == -300 {
+		if base == LEAF {
 			return false
 		}
 		if base+int(b) >= len(m.check) || m.check[base+int(b)]-1 != state {
@@ -162,7 +180,7 @@ func (m *matcher) findAll(text []byte) (matches []match) {
 	for i, b := range text {
 		offset := int(b)
 		for {
-			if m.base[state] == -300 {
+			if m.base[state] == LEAF {
 				state = m.fail[state]
 			} else if m.hasEdge(state, offset) {
 				state = m.base[state] + offset
@@ -184,21 +202,24 @@ func (m *matcher) findAll(text []byte) (matches []match) {
 }
 
 func main() {
-	// m, _ := compileMatcher([]string{"hers", "she"})
-	m, _ := compileMatcher([][]byte{
+	// m, _ := Compile([]string{"hers", "she"})
+	m := Compile([][]byte{
 		[]byte("he"),
-		[]byte("hers"),
-		[]byte("his"),
 		[]byte("she"),
-		[]byte("be"),
+		[]byte("they"),
+		[]byte("their"),
+		[]byte("where"),
+		[]byte("bear"),
+		[]byte("taratula"),
+		[]byte("adam"),
+		[]byte("regard-rethy"),
+		[]byte("panda"),
+		[]byte("bear"),
+		[]byte("golang"),
+		[]byte("his"),
+		[]byte("hers"),
+		[]byte("her"),
 	})
-
-	fmt.Println(hasPath([]byte("hers"), m))
-	fmt.Println(hasPath([]byte("she"), m))
-	fmt.Println(hasPath([]byte("his"), m))
-	fmt.Println(hasPath([]byte("he"), m))
-	fmt.Println(hasPath([]byte("be"), m))
-	fmt.Println(hasPath([]byte("herss"), m))
 
 	fmt.Printf("%v\n", m.base)
 	fmt.Printf("%v\n", m.check)

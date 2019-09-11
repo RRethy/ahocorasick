@@ -39,30 +39,30 @@
 // rune type.
 //
 // There are two public facing datatypes, biblio.Biblio and biblio.Match. To
-// construct a Biblio, one must first call biblio.Compile and pass it a slice
+// construct a Biblio, one must first call biblio.OldCompile and pass it a slice
 // of strings which are the patterns that will be looked for. Under the hood,
-// biblio.Compile will construct a finite state machine. Then, a string can be
+// biblio.OldCompile will construct a finite state machine. Then, a string can be
 // passed to biblio.FindAll, which will then return a slice of biblio.Matches.
 // For example:
-// bib := biblio.Compile([]string{"foo", "bar", "baz"})
+// bib := biblio.OldCompile([]string{"foo", "bar", "baz"})
 // bib.FindAll("foo bar baz bot") => {"foo", 0, 3}, {"bar", 4, 3}, {"baz", 8, 3}
 //
-// Let Σ be the alphabet for the patterns passed to biblio.Compile such that
+// Let Σ be the alphabet for the patterns passed to biblio.OldCompile such that
 //   the alphabet represents the set of characters used in the patterns.
 // Let total_pats_len be the sum of the lengths of all patterns passed to
-//   biblio.Compile
-// Let max be the length of the longest pattern passed to biblio.Compile
-// let n be the number of patterns passed to biblio.Compile
+//   biblio.OldCompile
+// Let max be the length of the longest pattern passed to biblio.OldCompile
+// let n be the number of patterns passed to biblio.OldCompile
 // Let m be the number of matches
 //
 // Time Complexity:
-// biblio.Compile: O(|Σ|*total_pats_len)
+// biblio.OldCompile: O(|Σ|*total_pats_len)
 // biblio.Biblio.FindAll(text): Θ(len(text))
 //
 // Space Complexity:
-// biblio.Compile: O(|Σ|*n*max)
+// biblio.OldCompile: O(|Σ|*n*max)
 // biblio.Biblio.FindAll: Θ(m)
-package main
+package biblio
 
 // Biblio is the representation of a compiled set of patterns.
 type Biblio struct {
@@ -83,9 +83,9 @@ type Match struct {
 	Index int
 }
 
-// Compile creates a Biblio for use in parsing. A state machine will be created
+// OldCompile creates a Biblio for use in parsing. A state machine will be created
 // which can be used for linear time parsing of a text.
-func Compile(words [][]byte) *Biblio {
+func OldCompile(words [][]byte) *Biblio {
 	biblio := new(Biblio)
 	if len(words) == 0 {
 		return biblio
