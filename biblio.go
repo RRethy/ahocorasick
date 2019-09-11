@@ -115,10 +115,6 @@ func Compile(words [][]byte) *Biblio {
 // FindAll returns a slice of biblio.Match which represent each pattern found in
 // text
 func (biblio *Biblio) FindAll(text []byte) (matches []Match) {
-	if len(biblio.output) == 0 {
-		return
-	}
-
 	state := 0
 	for i, c := range text {
 		if next, ok := biblio.next[state][c]; ok {

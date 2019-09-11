@@ -129,7 +129,7 @@ func (m *matcher) increaseSize(dsize int) {
 
 func (m *matcher) hasEdge(fromState, offset int) bool {
 	toState := m.base[fromState] + offset
-	return toState < len(m.check) && m.check[toState] == fromState+1
+	return toState >= 0 && toState < len(m.check) && m.check[toState] == fromState+1
 }
 
 func hasPath(word []byte, m *matcher) bool {
@@ -145,6 +145,37 @@ func hasPath(word []byte, m *matcher) bool {
 		state = base + int(b)
 	}
 	return true
+}
+
+type match struct {
+	word  []byte
+	index int
+}
+
+func (m *matcher) findAll(text []byte) (matches []match) {
+	state := 0
+	for i, b := range text {
+		offset := int(b)
+		for {
+			if m.base[state] == -300 {
+				state = m.fail[state]
+			} else if m.hasEdge(state, offset) {
+				state = m.base[state] + offset
+				break
+			} else if state == 0 {
+				break
+			} else {
+				state = m.fail[state]
+			}
+		}
+		if m.hasEdge(state, offset) {
+			state = m.base[state] + offset
+		}
+		for _, word := range m.output[state] {
+			matches = append(matches, match{word, i})
+		}
+	}
+	return
 }
 
 func main() {
@@ -172,5 +203,11 @@ func main() {
 		for _, word := range words {
 			fmt.Println(string(word))
 		}
+	}
+
+	fmt.Println("beshe hers ")
+	matches := m.findAll([]byte("beshe hers "))
+	for _, match := range matches {
+		fmt.Printf("%d - %s\n", match.index, string(match.word))
 	}
 }
