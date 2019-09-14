@@ -1,7 +1,9 @@
 package biblio
 
 import (
+	"fmt"
 	"sort"
+	"time"
 )
 
 const (
@@ -36,9 +38,9 @@ type Matcher struct {
 // Compile TODO
 func Compile(words [][]byte) *Matcher {
 	m := new(Matcher)
-	m.Base = append(m.Base, 0)
-	m.Check = append(m.Check, 0)
-	m.Fail = append(m.Fail, 0)
+	m.Base = make([]int, 2048)[:1]
+	m.Check = make([]int, 2048)[:1]
+	m.Fail = make([]int, 2048)[:1]
 	m.Output = map[int][][]byte{}
 
 	// Represents a node in the implicit trie representing words
@@ -46,12 +48,21 @@ func Compile(words [][]byte) *Matcher {
 		state    int
 		suffixes indexedStringSlice
 	}
-	queue := []trienode{{0, indexedStringSlice{words, 0}}}
+	queue := make([]trienode, 256)[:1]
+	queue[0] = trienode{0, indexedStringSlice{words, 0}}
+
+	sorttime := 0
+	basecalctime := 0
+	bfstime := 0
+	totalchild := 0
+	failtime := 0
+
 	for len(queue) > 0 {
 		node := queue[0]
 		queue = queue[1:]
 		depth := node.suffixes.depth
 
+		startSort := time.Now().Nanosecond()
 		// Get all the edges in lexicographical order
 		var edges []byte
 		sort.Sort(&node.suffixes)
@@ -61,12 +72,16 @@ func Compile(words [][]byte) *Matcher {
 				edges = append(edges, edge)
 			}
 		}
+		sorttime += time.Now().Nanosecond() - startSort
 
+		startBaseCalc := time.Now().Nanosecond()
 		// Calculate a suitable Base value where each edge will fit into the
 		// double array trie
 		Base := m.findBase(edges)
 		m.Base[node.state] = Base
+		basecalctime += time.Now().Nanosecond() - startBaseCalc
 
+		starttotalchild := time.Now().Nanosecond()
 		i := 0
 		for _, edge := range edges {
 			offset := int(edge)
@@ -78,6 +93,7 @@ func Compile(words [][]byte) *Matcher {
 			// values
 			m.Check[newState] = node.state + 1
 
+			startfailtime := time.Now().Nanosecond()
 			// Setup the Fail function for the child nodes. This Check will
 			// ensure nodes at level 0 and level 1 have a Fail state of 0
 			if node.state != 0 {
@@ -95,7 +111,9 @@ func Compile(words [][]byte) *Matcher {
 					m.Output[newState] = append(m.Output[newState], word)
 				}
 			}
+			failtime += time.Now().Nanosecond() - startfailtime
 
+			startBfs := time.Now().Nanosecond()
 			// Add the child nodes to the queue to continue down the BFS
 			newnode := trienode{newState, indexedStringSlice{[][]byte{}, depth + 1}}
 			for i < len(node.suffixes.slices) && node.suffixes.slices[i][depth] == edge {
@@ -107,8 +125,15 @@ func Compile(words [][]byte) *Matcher {
 				i++
 			}
 			queue = append(queue, newnode)
+			bfstime += time.Now().Nanosecond() - startBfs
 		}
+		totalchild += time.Now().Nanosecond() - starttotalchild
 	}
+	fmt.Printf("sorttime: %d ns\n", sorttime)
+	fmt.Printf("basecalctime: %d ns\n", basecalctime)
+	fmt.Printf("bfstime: %d ns\n", bfstime)
+	fmt.Printf("totalchild: %d ns\n", totalchild)
+	fmt.Printf("failtime: %d ns\n", failtime)
 
 	return m
 }
@@ -121,21 +146,23 @@ func (m *Matcher) findBase(edges []byte) int {
 	max := int(edges[len(edges)-1])
 	width := max - min
 
-	for i := range m.Check[1:] {
-		i++ // fix i since we are using range [1:], simplifies calculations
-		if i+width >= len(m.Check) {
-			break
-		}
-
-		fits := true
-		for _, e := range edges {
-			if m.Check[i+int(e)-min] != 0 {
-				fits = false
+	if len(edges) < 3 {
+		for i := range m.Check[1:] {
+			i++ // fix i since we are using range [1:], simplifies calculations
+			if i+width >= len(m.Check) {
 				break
 			}
-		}
-		if fits {
-			return i - min
+
+			fits := true
+			for _, e := range edges {
+				if m.Check[i+int(e)-min] != 0 {
+					fits = false
+					break
+				}
+			}
+			if fits {
+				return i - min
+			}
 		}
 	}
 
