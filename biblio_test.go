@@ -270,3 +270,112 @@ func BenchmarkCompile(b *testing.B) {
 		})
 	}
 }
+
+func TestFoobar(t *testing.T) {
+	m := &Matcher{
+		[]int{5, 0, 0},
+		[]int{0, 0, 0},
+		[]int{0, 0, 0},
+		map[int][][]byte{},
+	}
+	m.Foobar(1)
+	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -3}) {
+		t.Errorf("Got: %v\n", m.Base)
+	}
+	if !reflect.DeepEqual(m.Check, []int{-3, 0, 0, -1}) {
+		t.Errorf("Got: %v\n", m.Check)
+	}
+
+	m.Foobar(1)
+	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -4, -3}) {
+		t.Errorf("Got: %v\n", m.Base)
+	}
+	if !reflect.DeepEqual(m.Check, []int{-3, 0, 0, -4, -1}) {
+		t.Errorf("Got: %v\n", m.Check)
+	}
+
+	m.Foobar(1)
+	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -5, -3, -4}) {
+		t.Errorf("Got: %v\n", m.Base)
+	}
+	if !reflect.DeepEqual(m.Check, []int{-3, 0, 0, -4, -5, -1}) {
+		t.Errorf("Got: %v\n", m.Check)
+	}
+
+	m = &Matcher{
+		[]int{5, 0, 0},
+		[]int{0, 0, 0},
+		[]int{0, 0, 0},
+		map[int][][]byte{},
+	}
+	m.Foobar(3)
+	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -5, -3, -4}) {
+		t.Errorf("Got: %v\n", m.Base)
+	}
+	if !reflect.DeepEqual(m.Check, []int{-3, 0, 0, -4, -5, -1}) {
+		t.Errorf("Got: %v\n", m.Check)
+	}
+
+	m.Foobar(3)
+	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -8, -3, -4, -5, -6, -7}) {
+		t.Errorf("Got: %v\n", m.Base)
+	}
+	if !reflect.DeepEqual(m.Check, []int{-3, 0, 0, -4, -5, -6, -7, -8, -1}) {
+		t.Errorf("Got: %v\n", m.Check)
+	}
+}
+
+func TestFoofb(t *testing.T) {
+	m := &Matcher{
+		[]int{5, 0, 0, -3},
+		[]int{-3, 0, 0, -1},
+		[]int{},
+		map[int][][]byte{},
+	}
+	base := m.Foofb([]byte{byte(2), byte(5)})
+	if base != 1 {
+		t.Errorf("Got: %d\n", base)
+	}
+	base = m.Foofb([]byte{byte(5)})
+	if base != -2 {
+		t.Errorf("Got: %d\n", base)
+	}
+	base = m.Foofb([]byte{byte(2), byte(5), byte(10)})
+	if base != 1 {
+		t.Errorf("Got: %d\n", base)
+	}
+	base = m.Foofb([]byte{})
+	if base != LEAF {
+		t.Errorf("Got: %d\n", base)
+	}
+
+	m = &Matcher{
+		[]int{5, 0, 0},
+		[]int{0, 0, 0},
+		[]int{0, 0, 0},
+		map[int][][]byte{},
+	}
+	base = m.Foofb([]byte{byte(2), byte(5)})
+	if base != 1 {
+		t.Errorf("Got: %d\n", base)
+	}
+	if len(m.Check) != 7 {
+		t.Errorf("Got: %d\n", m.Check)
+	}
+	if len(m.Base) != 7 {
+		t.Errorf("Got: %d\n", m.Base)
+	}
+}
+
+func TestNextFreeState(t *testing.T) {
+	m := &Matcher{
+		[]int{5, 0, 0, -3},
+		[]int{-3, 0, 0, -1},
+		[]int{},
+		map[int][][]byte{},
+	}
+	nextState := m.nextFreeState(3)
+	if nextState != -1 {
+		t.Errorf("Got: %d\n", nextState)
+	}
+}

@@ -62,6 +62,12 @@ func Compile(words [][]byte) *Matcher {
 		queue = queue[1:]
 		depth := node.suffixes.depth
 
+		// TODO if no edges then make it a leaf and continue
+		if node.suffixes.Len() == 0 {
+			m.Base[node.state] = LEAF
+			continue
+		}
+
 		startSort := time.Now().Nanosecond()
 		// Get all the edges in lexicographical order
 		var edges []byte
@@ -138,6 +144,45 @@ func Compile(words [][]byte) *Matcher {
 	return m
 }
 
+// Foofb TODO
+func (m *Matcher) Foofb(edges []byte) int {
+	if len(edges) == 0 {
+		// TODO this should be removed eventually
+		return LEAF
+	}
+
+	min := int(edges[0])
+	max := int(edges[len(edges)-1])
+	width := max - min
+	freeState := m.firstFreeState()
+	for freeState != -1 {
+		valid := true
+		for _, e := range edges[1:] {
+			state := freeState + int(e) - min
+			if state >= len(m.Check) {
+				break
+			} else if m.Check[state] >= 0 {
+				valid = false
+				break
+			}
+		}
+
+		if valid {
+			if freeState+width >= len(m.Check) {
+				m.Foobar(width - len(m.Check) + freeState + 1)
+			}
+			return freeState - min
+		}
+
+		freeState = m.nextFreeState(freeState)
+	}
+
+	freeState = len(m.Check)
+	m.Foobar(width + 1)
+	return freeState - min
+}
+
+// findBase TODO
 func (m *Matcher) findBase(edges []byte) int {
 	if len(edges) == 0 {
 		return LEAF
@@ -146,7 +191,7 @@ func (m *Matcher) findBase(edges []byte) int {
 	max := int(edges[len(edges)-1])
 	width := max - min
 
-	if len(edges) < 3 {
+	if len(edges) < 1 {
 		for i := range m.Check[1:] {
 			i++ // fix i since we are using range [1:], simplifies calculations
 			if i+width >= len(m.Check) {
@@ -168,6 +213,91 @@ func (m *Matcher) findBase(edges []byte) int {
 
 	m.increaseSize(width + 1)
 	return len(m.Base) - 1 - max
+}
+
+// Foobar TODO
+// increaseSize increases the size of base, check, and fail to ensure they
+// remain the same size.
+// It also sets the default value for these new unoccupied states which form
+// bidirectional links to allow fast access to empty states. These
+// bidirectional links only pertain to base and check.
+//
+// Example:
+// m:
+//   base:  [ 5 0 0 ]
+//   check: [ 0 0 0 ]
+// increaseSize(3):
+//   base:  [ 5  0 0 -5 -3 -4 ]
+//   check: [ -3 0 0 -4 -5 -1 ]
+// increaseSize(3):
+//   base:  [ 5  0 0 -8 -3 -4 -5 -6 -7]
+//   check: [ -3 0 0 -4 -5 -6 -7 -8 -1]
+//
+// m:
+//   base:  [ 5 0 0 ]
+//   check: [ 0 0 0 ]
+// increaseSize(1):
+//   base:  [ 5  0 0 -3 ]
+//   check: [ -3 0 0 -1 ]
+// increaseSize(1):
+//   base:  [ 5  0 0 -4 -3 ]
+//   check: [ -3 0 0 -4 -1 ]
+// increaseSize(1):
+//   base:  [ 5  0 0 -5 -3 -4 ]
+//   check: [ -3 0 0 -4 -5 -1 ]
+func (m *Matcher) Foobar(dsize int) {
+	if dsize == 0 {
+		return
+	}
+
+	m.Base = append(m.Base, make([]int, dsize)...)
+	m.Check = append(m.Check, make([]int, dsize)...)
+	m.Fail = append(m.Fail, make([]int, dsize)...)
+
+	lastFreeState := m.lastFreeState()
+	firstFreeState := m.firstFreeState()
+	for i := len(m.Check) - dsize; i < len(m.Check); i++ {
+		if lastFreeState == -1 {
+			m.Check[0] = -1 * i
+			m.Base[i] = -1 * i
+			m.Check[i] = -1
+			firstFreeState = i
+			lastFreeState = i
+		} else {
+			m.Base[i] = -1 * lastFreeState
+			m.Check[i] = -1
+			m.Base[firstFreeState] = -1 * i
+			m.Check[lastFreeState] = -1 * i
+			lastFreeState = i
+		}
+	}
+}
+
+func (m *Matcher) nextFreeState(curState int) int {
+	nextState := -1 * m.Check[curState]
+
+	// state 1 can never be a free state.
+	if nextState == 1 {
+		return -1
+	}
+
+	return nextState
+}
+
+func (m *Matcher) firstFreeState() int {
+	state := m.Check[0]
+	if state != 0 {
+		return -1 * state
+	}
+	return -1
+}
+
+func (m *Matcher) lastFreeState() int {
+	firstFree := m.firstFreeState()
+	if firstFree != -1 {
+		return -1 * m.Base[firstFree]
+	}
+	return -1
 }
 
 func (m *Matcher) increaseSize(dsize int) {
