@@ -8,7 +8,7 @@ import (
 
 func main() {
 	start := time.Now()
-	biblio.Compile([][]byte{
+	m := biblio.Compile([][]byte{
 		[]byte("822102ssagolang"),
 		[]byte("823103ssahis"),
 		[]byte("824104ssahers"),
@@ -695,7 +695,6 @@ func main() {
 		[]byte("6565pawhere"),
 		[]byte("6666pabear"),
 		[]byte("6767pataratula"),
-		[]byte("6868paadam"),
 		[]byte("6969paregard-rethy"),
 		[]byte("7070papanda"),
 		[]byte("7171pabear"),
@@ -2069,21 +2068,7 @@ func main() {
 		[]byte("thers"),
 		[]byte("ther"),
 	})
+	fmt.Println(len(m.Check))
 	end := time.Now()
 	fmt.Printf("total: %d ns\n", end.Nanosecond()-start.Nanosecond())
-	// m := &biblio.Matcher{
-	// 	Base:   []int{5, 0, 0},
-	// 	Check:  []int{0, 0, 0},
-	// 	Fail:   []int{0, 0, 0},
-	// 	Output: map[int][][]byte{},
-	// }
-	// m.Foobar(1)
-	// fmt.Printf("%v\n", m.Base)
-	// fmt.Printf("%v\n", m.Check)
-	// m.Foobar(1)
-	// fmt.Printf("%v\n", m.Base)
-	// fmt.Printf("%v\n", m.Check)
-	// m.Foobar(1)
-	// fmt.Printf("%v\n", m.Base)
-	// fmt.Printf("%v\n", m.Check)
 }

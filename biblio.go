@@ -35,6 +35,15 @@ type Matcher struct {
 	Output map[int][][]byte
 }
 
+func (m *Matcher) String() string {
+	return fmt.Sprintf(`
+Base:   %v
+Check:  %v
+Fail:   %v
+Output: %v
+`, m.Base, m.Check, m.Fail, m.Output)
+}
+
 // Compile TODO
 func Compile(words [][]byte) *Matcher {
 	m := new(Matcher)
@@ -63,10 +72,10 @@ func Compile(words [][]byte) *Matcher {
 		depth := node.suffixes.depth
 
 		// TODO if no edges then make it a leaf and continue
-		if node.suffixes.Len() == 0 {
-			m.Base[node.state] = LEAF
-			continue
-		}
+		// if node.suffixes.Len() == 0 {
+		// 	m.Base[node.state] = LEAF
+		// 	continue
+		// }
 
 		startSort := time.Now().Nanosecond()
 		// Get all the edges in lexicographical order
@@ -83,7 +92,7 @@ func Compile(words [][]byte) *Matcher {
 		startBaseCalc := time.Now().Nanosecond()
 		// Calculate a suitable Base value where each edge will fit into the
 		// double array trie
-		Base := m.findBase(edges)
+		Base := m.Foofb(edges)
 		m.Base[node.state] = Base
 		basecalctime += time.Now().Nanosecond() - startBaseCalc
 
@@ -97,26 +106,13 @@ func Compile(words [][]byte) *Matcher {
 			// this edge exists in the trie
 			// We always increase the state held in Check by 1 to avoid zero
 			// values
-			m.Check[newState] = node.state + 1
+			// TODO this comment is wrong
+			m.occupyState(newState, node.state)
+			// m.Check[newState] = node.state
 
 			startfailtime := time.Now().Nanosecond()
-			// Setup the Fail function for the child nodes. This Check will
-			// ensure nodes at level 0 and level 1 have a Fail state of 0
-			if node.state != 0 {
-				if m.hasEdge(m.Fail[node.state], offset) {
-					// We can continue from the Fail state of the parent
-					m.Fail[newState] = m.Base[m.Fail[node.state]] + offset
-				} else if m.hasEdge(0, offset) {
-					// We can continue from the Fail state of root
-					m.Fail[newState] = m.Base[0] + offset
-				}
-
-				// Setup the Output function
-				failState := m.Fail[newState]
-				for _, word := range m.Output[failState] {
-					m.Output[newState] = append(m.Output[newState], word)
-				}
-			}
+			failState := m.setupfail(newState, node.state, offset)
+			m.unionFailOutput(newState, failState)
 			failtime += time.Now().Nanosecond() - startfailtime
 
 			startBfs := time.Now().Nanosecond()
@@ -135,13 +131,56 @@ func Compile(words [][]byte) *Matcher {
 		}
 		totalchild += time.Now().Nanosecond() - starttotalchild
 	}
-	fmt.Printf("sorttime: %d ns\n", sorttime)
-	fmt.Printf("basecalctime: %d ns\n", basecalctime)
-	fmt.Printf("bfstime: %d ns\n", bfstime)
-	fmt.Printf("totalchild: %d ns\n", totalchild)
-	fmt.Printf("failtime: %d ns\n", failtime)
+	// fmt.Printf("sorttime: %d ns\n", sorttime)
+	// fmt.Printf("basecalctime: %d ns\n", basecalctime)
+	// fmt.Printf("bfstime: %d ns\n", bfstime)
+	// fmt.Printf("totalchild: %d ns\n", totalchild)
+	// fmt.Printf("failtime: %d ns\n", failtime)
 
 	return m
+}
+
+func (m *Matcher) occupyState(state, parentState int) {
+	firstFreeState := m.firstFreeState()
+	lastFreeState := m.lastFreeState()
+	if firstFreeState == lastFreeState {
+		m.Check[0] = 0
+	} else {
+		switch state {
+		case firstFreeState:
+			next := -1 * m.Check[state]
+			m.Check[0] = -1 * next
+			m.Base[next] = m.Base[state]
+		case lastFreeState:
+			prev := -1 * m.Base[state]
+			m.Base[firstFreeState] = -1 * prev
+			m.Check[prev] = -1
+		default:
+			next := -1 * m.Check[state]
+			prev := -1 * m.Base[state]
+			m.Check[prev] = -1 * next
+			m.Base[next] = -1 * prev
+		}
+	}
+	m.Check[state] = parentState
+	m.Base[state] = LEAF
+}
+
+func (m *Matcher) setupfail(state, parentState, offset int) int {
+	if parentState != 0 {
+		if m.hasEdge(m.Fail[parentState], offset) {
+			m.Fail[state] = m.Base[m.Fail[parentState]] + offset
+		} else if m.hasEdge(0, offset) {
+			m.Fail[state] = m.Base[0] + offset
+		}
+	}
+	return m.Fail[state]
+}
+
+func (m *Matcher) unionFailOutput(state, failState int) {
+	for _, word := range m.Output[failState] {
+		m.Output[state] = append(m.Output[state], word)
+	}
 }
 
 // Foofb TODO
@@ -176,7 +215,6 @@ func (m *Matcher) Foofb(edges []byte) int {
 
 		freeState = m.nextFreeState(freeState)
 	}
-
 	freeState = len(m.Check)
 	m.Foobar(width + 1)
 	return freeState - min
@@ -273,8 +311,8 @@ func (m *Matcher) Foobar(dsize int) {
 	}
 }
 
-func (m *Matcher) nextFreeState(curState int) int {
-	nextState := -1 * m.Check[curState]
+func (m *Matcher) nextFreeState(curFreeState int) int {
+	nextState := -1 * m.Check[curFreeState]
 
 	// state 1 can never be a free state.
 	if nextState == 1 {
@@ -308,7 +346,8 @@ func (m *Matcher) increaseSize(dsize int) {
 
 func (m *Matcher) hasEdge(fromState, offset int) bool {
 	toState := m.Base[fromState] + offset
-	return toState >= 0 && toState < len(m.Check) && m.Check[toState] == fromState+1
+	return toState > 0 && toState < len(m.Check) && m.Check[toState] == fromState
+	// return toState >= 0 && toState < len(m.Check) && m.Check[toState] == fromState+1
 }
 
 func hasPath(word []byte, m *Matcher) bool {

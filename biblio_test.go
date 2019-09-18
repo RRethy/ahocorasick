@@ -42,9 +42,10 @@ func TestFindAll(t *testing.T) {
 		got := matcher.FindAll(test.text)
 		if !(len(got) == 0 && len(test.expected) == 0) && !reflect.DeepEqual(got, test.expected) {
 			t.Errorf(`
+        Text:     %s
 		Expected: %v
 		Got:      %v
-		`, test.expected, got)
+		`, test.text, test.expected, got)
 		}
 	}
 }
@@ -323,6 +324,34 @@ func TestFoobar(t *testing.T) {
 	if !reflect.DeepEqual(m.Check, []int{-3, 0, 0, -4, -5, -6, -7, -8, -1}) {
 		t.Errorf("Got: %v\n", m.Check)
 	}
+
+	m = &Matcher{
+		[]int{0},
+		[]int{0},
+		[]int{0},
+		map[int][][]byte{},
+	}
+	m.Foobar(5)
+	if !reflect.DeepEqual(m.Base, []int{0, -5, -1, -2, -3, -4}) {
+		t.Errorf("Got: %v\n", m.Base)
+	}
+	if !reflect.DeepEqual(m.Check, []int{-1, -2, -3, -4, -5, -1}) {
+		t.Errorf("Got: %v\n", m.Check)
+	}
+
+	m = &Matcher{
+		[]int{-103, -1867},
+		[]int{0, 0},
+		[]int{},
+		map[int][][]byte{},
+	}
+	m.Foobar(5)
+	if !reflect.DeepEqual(m.Base, []int{-103, -1867, -6, -2, -3, -4, -5}) {
+		t.Errorf("Got: %v\n", m.Base)
+	}
+	if !reflect.DeepEqual(m.Check, []int{-2, 0, -3, -4, -5, -6, -1}) {
+		t.Errorf("Got: %v\n", m.Check)
+	}
 }
 
 func TestFoofb(t *testing.T) {
@@ -341,7 +370,7 @@ func TestFoofb(t *testing.T) {
 		t.Errorf("Got: %d\n", base)
 	}
 	base = m.Foofb([]byte{byte(2), byte(5), byte(10)})
-	if base != 1 {
+	if base != 5 {
 		t.Errorf("Got: %d\n", base)
 	}
 	base = m.Foofb([]byte{})
@@ -365,6 +394,23 @@ func TestFoofb(t *testing.T) {
 	if len(m.Base) != 7 {
 		t.Errorf("Got: %d\n", m.Base)
 	}
+
+	m = &Matcher{
+		[]int{5, 0, 0, -8, -3, -4, -5, -6, -7},
+		[]int{-3, 0, 0, -4, -5, -6, -7, -8, -1},
+		[]int{},
+		map[int][][]byte{},
+	}
+	base = m.Foofb([]byte{byte(2), byte(4), byte(6), byte(8)})
+	if base != 7 {
+		t.Errorf("Got: %d\n", base)
+	}
+	if len(m.Check) != 16 {
+		t.Errorf("Got: %d\n", m.Check)
+	}
+	if len(m.Base) != 16 {
+		t.Errorf("Got: %d\n", m.Base)
+	}
 }
 
 func TestNextFreeState(t *testing.T) {
@@ -378,4 +424,7 @@ func TestNextFreeState(t *testing.T) {
 	if nextState != -1 {
 		t.Errorf("Got: %d\n", nextState)
 	}
+}
+
+func TestOccupyState(t *testing.T) {
 }
