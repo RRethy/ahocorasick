@@ -111,8 +111,10 @@ func Compile(words [][]byte) *Matcher {
 			// m.Check[newState] = node.state
 
 			startfailtime := time.Now().Nanosecond()
-			failState := m.setupfail(newState, node.state, offset)
-			m.unionFailOutput(newState, failState)
+			if depth > 0 {
+				m.setupfail(newState, node.state, offset)
+			}
+			m.unionFailOutput(newState, m.Fail[newState])
 			failtime += time.Now().Nanosecond() - startfailtime
 
 			startBfs := time.Now().Nanosecond()
@@ -166,15 +168,18 @@ func (m *Matcher) occupyState(state, parentState int) {
 	m.Base[state] = LEAF
 }
 
-func (m *Matcher) setupfail(state, parentState, offset int) int {
-	if parentState != 0 {
-		if m.hasEdge(m.Fail[parentState], offset) {
-			m.Fail[state] = m.Base[m.Fail[parentState]] + offset
-		} else if m.hasEdge(0, offset) {
-			m.Fail[state] = m.Base[0] + offset
+func (m *Matcher) setupfail(state, parentState, offset int) {
+	failState := m.Fail[parentState]
+	for {
+		if m.hasEdge(failState, offset) {
+			m.Fail[state] = m.Base[failState] + offset
+			break
 		}
+		if failState == 0 {
+			break
+		}
+		failState = m.Fail[failState]
 	}
-	return m.Fail[state]
 }
 
 func (m *Matcher) unionFailOutput(state, failState int) {
@@ -376,17 +381,12 @@ func (m *Matcher) FindAll(text []byte) (matches []Match) {
 	state := 0
 	for i, b := range text {
 		offset := int(b)
-		for {
-			if m.hasEdge(state, offset) {
-				state = m.Base[state] + offset
-				break
-			} else if state == 0 {
-				break
-			} else if m.Base[state] == LEAF {
-				state = m.Fail[state]
-			} else {
-				state = m.Fail[state]
-			}
+		for !m.hasEdge(state, offset) && state != 0 {
+			state = m.Fail[state]
+		}
+
+		if m.hasEdge(state, offset) {
+			state = m.Base[state] + offset
 		}
 		for _, word := range m.Output[state] {
 			matches = append(matches, Match{word, i})

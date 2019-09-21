@@ -12,6 +12,16 @@ func TestFindAll(t *testing.T) {
 		text     []byte
 	}{
 		{
+			[][]byte{[]byte("na"), []byte("ink"), []byte("ki")},
+			[]Match{{[]byte("ink"), 2}, {[]byte("ki"), 3}},
+			[]byte("inking"),
+		},
+		{
+			[][]byte{[]byte("ca"), []byte("erica"), []byte("rice")},
+			[]Match{{[]byte("ca"), 4}, {[]byte("erica"), 4}},
+			[]byte("erican"),
+		},
+		{
 			[][]byte{[]byte("he"), []byte("she"), []byte("his"), []byte("hers")},
 			[]Match{{[]byte("he"), 3}, {[]byte("she"), 3}, {[]byte("hers"), 5}},
 			[]byte("ushers"),
@@ -45,7 +55,11 @@ func TestFindAll(t *testing.T) {
         Text:     %s
 		Expected: %v
 		Got:      %v
-		`, test.text, test.expected, got)
+		Base:     %v
+		Check:    %v
+		Fail:     %v
+		Output:   %v
+		`, test.text, test.expected, got, matcher.Base, matcher.Check, matcher.Fail, matcher.Output)
 		}
 	}
 }
@@ -354,64 +368,64 @@ func TestFoobar(t *testing.T) {
 	}
 }
 
-func TestFoofb(t *testing.T) {
-	m := &Matcher{
-		[]int{5, 0, 0, -3},
-		[]int{-3, 0, 0, -1},
-		[]int{},
-		map[int][][]byte{},
-	}
-	base := m.Foofb([]byte{byte(2), byte(5)})
-	if base != 1 {
-		t.Errorf("Got: %d\n", base)
-	}
-	base = m.Foofb([]byte{byte(5)})
-	if base != -2 {
-		t.Errorf("Got: %d\n", base)
-	}
-	base = m.Foofb([]byte{byte(2), byte(5), byte(10)})
-	if base != 5 {
-		t.Errorf("Got: %d\n", base)
-	}
-	base = m.Foofb([]byte{})
-	if base != LEAF {
-		t.Errorf("Got: %d\n", base)
-	}
+// func TestFoofb(t *testing.T) {
+// 	m := &Matcher{
+// 		[]int{5, 0, 0, -3},
+// 		[]int{-3, 0, 0, -1},
+// 		[]int{},
+// 		map[int][][]byte{},
+// 	}
+// 	base := m.Foofb([]byte{byte(2), byte(5)})
+// 	if base != 1 {
+// 		t.Errorf("Got: %d\n", base)
+// 	}
+// 	base = m.Foofb([]byte{byte(5)})
+// 	if base != -2 {
+// 		t.Errorf("Got: %d\n", base)
+// 	}
+// 	base = m.Foofb([]byte{byte(2), byte(5), byte(10)})
+// 	if base != 5 {
+// 		t.Errorf("Got: %d\n", base)
+// 	}
+// 	base = m.Foofb([]byte{})
+// 	if base != LEAF {
+// 		t.Errorf("Got: %d\n", base)
+// 	}
 
-	m = &Matcher{
-		[]int{5, 0, 0},
-		[]int{0, 0, 0},
-		[]int{0, 0, 0},
-		map[int][][]byte{},
-	}
-	base = m.Foofb([]byte{byte(2), byte(5)})
-	if base != 1 {
-		t.Errorf("Got: %d\n", base)
-	}
-	if len(m.Check) != 7 {
-		t.Errorf("Got: %d\n", m.Check)
-	}
-	if len(m.Base) != 7 {
-		t.Errorf("Got: %d\n", m.Base)
-	}
+// 	m = &Matcher{
+// 		[]int{5, 0, 0},
+// 		[]int{0, 0, 0},
+// 		[]int{0, 0, 0},
+// 		map[int][][]byte{},
+// 	}
+// 	base = m.Foofb([]byte{byte(2), byte(5)})
+// 	if base != 1 {
+// 		t.Errorf("Got: %d\n", base)
+// 	}
+// 	if len(m.Check) != 7 {
+// 		t.Errorf("Got: %d\n", m.Check)
+// 	}
+// 	if len(m.Base) != 7 {
+// 		t.Errorf("Got: %d\n", m.Base)
+// 	}
 
-	m = &Matcher{
-		[]int{5, 0, 0, -8, -3, -4, -5, -6, -7},
-		[]int{-3, 0, 0, -4, -5, -6, -7, -8, -1},
-		[]int{},
-		map[int][][]byte{},
-	}
-	base = m.Foofb([]byte{byte(2), byte(4), byte(6), byte(8)})
-	if base != 7 {
-		t.Errorf("Got: %d\n", base)
-	}
-	if len(m.Check) != 16 {
-		t.Errorf("Got: %d\n", m.Check)
-	}
-	if len(m.Base) != 16 {
-		t.Errorf("Got: %d\n", m.Base)
-	}
-}
+// 	m = &Matcher{
+// 		[]int{5, 0, 0, -8, -3, -4, -5, -6, -7},
+// 		[]int{-3, 0, 0, -4, -5, -6, -7, -8, -1},
+// 		[]int{},
+// 		map[int][][]byte{},
+// 	}
+// 	base = m.Foofb([]byte{byte(2), byte(4), byte(6), byte(8)})
+// 	if base != 7 {
+// 		t.Errorf("Got: %d\n", base)
+// 	}
+// 	if len(m.Check) != 16 {
+// 		t.Errorf("Got: %d\n", m.Check)
+// 	}
+// 	if len(m.Base) != 16 {
+// 		t.Errorf("Got: %d\n", m.Base)
+// 	}
+// }
 
 func TestNextFreeState(t *testing.T) {
 	m := &Matcher{
