@@ -3,36 +3,45 @@ package biblio
 import (
 	"fmt"
 	"sort"
-	"time"
 )
 
 const (
 	// LEAF represents a leaf on the trie
 	// This must be <255 since the offsets used are in [0,255]
+	// This should only appear in the Base array since the Check array uses
+	// negative values to represent free states.
 	LEAF = -1867
 )
 
+// This special string slice is used so we can sort a slice of strings on a
+// single index.
+// This is used so we can have an implicit trie of words which can be BFS'd
+// when constructing the double array trie.
+// For example:
+// slices: {"abc", "bca", "cab"}
+// index: 1
+// Sorted order => {"cab", "abc", "bca"}
 type indexedStringSlice struct {
 	slices [][]byte
-	depth  int
+	index  int
 }
 
 func (sslice *indexedStringSlice) Len() int {
 	return len(sslice.slices)
 }
 func (sslice *indexedStringSlice) Less(i, j int) bool {
-	return sslice.slices[i][sslice.depth] < sslice.slices[j][sslice.depth]
+	return sslice.slices[i][sslice.index] < sslice.slices[j][sslice.index]
 }
 func (sslice *indexedStringSlice) Swap(i, j int) {
 	sslice.slices[i], sslice.slices[j] = sslice.slices[j], sslice.slices[i]
 }
 
-// Matcher TODO
+// Matcher is the pattern matching state machine.
 type Matcher struct {
-	Base   []int
-	Check  []int
-	Fail   []int
-	Output map[int][][]byte
+	Base   []int            // base array in the double array trie
+	Check  []int            // check array in the double array trie
+	Fail   []int            // fail function
+	Output map[int][][]byte // output function
 }
 
 func (m *Matcher) String() string {
@@ -44,7 +53,8 @@ Output: %v
 `, m.Base, m.Check, m.Fail, m.Output)
 }
 
-// Compile TODO
+// Compile compiles a Matcher from a slice of byte slices. This Matcher can be
+// used to find occurrences of each pattern in a text.
 func Compile(words [][]byte) *Matcher {
 	m := new(Matcher)
 	m.Base = make([]int, 2048)[:1]
@@ -52,7 +62,7 @@ func Compile(words [][]byte) *Matcher {
 	m.Fail = make([]int, 2048)[:1]
 	m.Output = map[int][][]byte{}
 
-	// Represents a node in the implicit trie representing words
+	// Represents a node in the implicit trie of words
 	type trienode struct {
 		state    int
 		suffixes indexedStringSlice
@@ -60,25 +70,18 @@ func Compile(words [][]byte) *Matcher {
 	queue := make([]trienode, 256)[:1]
 	queue[0] = trienode{0, indexedStringSlice{words, 0}}
 
-	sorttime := 0
-	basecalctime := 0
-	bfstime := 0
-	totalchild := 0
-	failtime := 0
-
 	for len(queue) > 0 {
 		node := queue[0]
 		queue = queue[1:]
-		depth := node.suffixes.depth
+		depth := node.suffixes.index
 
-		// TODO if no edges then make it a leaf and continue
-		// if node.suffixes.Len() == 0 {
-		// 	m.Base[node.state] = LEAF
-		// 	continue
-		// }
+		if node.suffixes.Len() == 0 {
+			m.Base[node.state] = LEAF
+			continue
+		}
 
-		startSort := time.Now().Nanosecond()
-		// Get all the edges in lexicographical order
+		// Get all the edges in lexicographical order for the call to
+		// Matcher.findBase
 		var edges []byte
 		sort.Sort(&node.suffixes)
 		for _, suffix := range node.suffixes.slices {
@@ -87,37 +90,25 @@ func Compile(words [][]byte) *Matcher {
 				edges = append(edges, edge)
 			}
 		}
-		sorttime += time.Now().Nanosecond() - startSort
 
-		startBaseCalc := time.Now().Nanosecond()
 		// Calculate a suitable Base value where each edge will fit into the
 		// double array trie
-		Base := m.Foofb(edges)
-		m.Base[node.state] = Base
-		basecalctime += time.Now().Nanosecond() - startBaseCalc
+		base := m.findBase(edges)
+		m.Base[node.state] = base
 
-		starttotalchild := time.Now().Nanosecond()
 		i := 0
 		for _, edge := range edges {
 			offset := int(edge)
-			newState := Base + offset
+			newState := base + offset
 
-			// Setup the state=Check[Base[state]+offset] identity so we know
-			// this edge exists in the trie
-			// We always increase the state held in Check by 1 to avoid zero
-			// values
-			// TODO this comment is wrong
 			m.occupyState(newState, node.state)
-			// m.Check[newState] = node.state
 
-			startfailtime := time.Now().Nanosecond()
+			// level 0 and level 1 should fail to state 0
 			if depth > 0 {
-				m.setupfail(newState, node.state, offset)
+				m.setFailState(newState, node.state, offset)
 			}
 			m.unionFailOutput(newState, m.Fail[newState])
-			failtime += time.Now().Nanosecond() - startfailtime
 
-			startBfs := time.Now().Nanosecond()
 			// Add the child nodes to the queue to continue down the BFS
 			newnode := trienode{newState, indexedStringSlice{[][]byte{}, depth + 1}}
 			for i < len(node.suffixes.slices) && node.suffixes.slices[i][depth] == edge {
@@ -129,19 +120,17 @@ func Compile(words [][]byte) *Matcher {
 				i++
 			}
 			queue = append(queue, newnode)
-			bfstime += time.Now().Nanosecond() - startBfs
 		}
-		totalchild += time.Now().Nanosecond() - starttotalchild
 	}
-	// fmt.Printf("sorttime: %d ns\n", sorttime)
-	// fmt.Printf("basecalctime: %d ns\n", basecalctime)
-	// fmt.Printf("bfstime: %d ns\n", bfstime)
-	// fmt.Printf("totalchild: %d ns\n", totalchild)
-	// fmt.Printf("failtime: %d ns\n", failtime)
 
 	return m
 }
 
+// occupyState will correctly occupy state so it maintains the
+// index=check[base[index]+offset] identity. It will also update the
+// bidirectional link of free states correctly.
+// Note: This MUST be used instead of simply modifying the check array directly
+// which is break the bidirectional link of free states.
 func (m *Matcher) occupyState(state, parentState int) {
 	firstFreeState := m.firstFreeState()
 	lastFreeState := m.lastFreeState()
@@ -168,7 +157,10 @@ func (m *Matcher) occupyState(state, parentState int) {
 	m.Base[state] = LEAF
 }
 
-func (m *Matcher) setupfail(state, parentState, offset int) {
+// setFailState sets the output of the fail function for input state. It will
+// traverse up the fail states of it's ancestors until it reaches a fail state
+// with a transition for offset.
+func (m *Matcher) setFailState(state, parentState, offset int) {
 	failState := m.Fail[parentState]
 	for {
 		if m.hasEdge(failState, offset) {
@@ -182,16 +174,23 @@ func (m *Matcher) setupfail(state, parentState, offset int) {
 	}
 }
 
+// unionFailOutput unions the output function for failState with the output
+// function for state and sets the result as the output function for state.
+// This allows us to match substrings, commenting out this body would match
+// every word that is not a substring.
 func (m *Matcher) unionFailOutput(state, failState int) {
 	for _, word := range m.Output[failState] {
 		m.Output[state] = append(m.Output[state], word)
 	}
 }
 
-// Foofb TODO
-func (m *Matcher) Foofb(edges []byte) int {
+// findBase finds a base value which has free states in the positions that
+// correspond to each edge transition in edges. If this does not exist, then
+// base and check (and the fail array for consistency) will be extended just
+// enough to fit each transition.
+// The extension will maintain the bidirectional link of free states.
+func (m *Matcher) findBase(edges []byte) int {
 	if len(edges) == 0 {
-		// TODO this should be removed eventually
 		return LEAF
 	}
 
@@ -213,7 +212,7 @@ func (m *Matcher) Foofb(edges []byte) int {
 
 		if valid {
 			if freeState+width >= len(m.Check) {
-				m.Foobar(width - len(m.Check) + freeState + 1)
+				m.increaseSize(width - len(m.Check) + freeState + 1)
 			}
 			return freeState - min
 		}
@@ -221,44 +220,10 @@ func (m *Matcher) Foofb(edges []byte) int {
 		freeState = m.nextFreeState(freeState)
 	}
 	freeState = len(m.Check)
-	m.Foobar(width + 1)
+	m.increaseSize(width + 1)
 	return freeState - min
 }
 
-// findBase TODO
-func (m *Matcher) findBase(edges []byte) int {
-	if len(edges) == 0 {
-		return LEAF
-	}
-	min := int(edges[0])
-	max := int(edges[len(edges)-1])
-	width := max - min
-
-	if len(edges) < 1 {
-		for i := range m.Check[1:] {
-			i++ // fix i since we are using range [1:], simplifies calculations
-			if i+width >= len(m.Check) {
-				break
-			}
-
-			fits := true
-			for _, e := range edges {
-				if m.Check[i+int(e)-min] != 0 {
-					fits = false
-					break
-				}
-			}
-			if fits {
-				return i - min
-			}
-		}
-	}
-
-	m.increaseSize(width + 1)
-	return len(m.Base) - 1 - max
-}
-
-// Foobar TODO
 // increaseSize increases the size of base, check, and fail to ensure they
 // remain the same size.
 // It also sets the default value for these new unoccupied states which form
@@ -288,7 +253,7 @@ func (m *Matcher) findBase(edges []byte) int {
 // increaseSize(1):
 //   base:  [ 5  0 0 -5 -3 -4 ]
 //   check: [ -3 0 0 -4 -5 -1 ]
-func (m *Matcher) Foobar(dsize int) {
+func (m *Matcher) increaseSize(dsize int) {
 	if dsize == 0 {
 		return
 	}
@@ -316,6 +281,10 @@ func (m *Matcher) Foobar(dsize int) {
 	}
 }
 
+// nextFreeState uses the nature of the bidirectional link to determine the
+// closest free state at a larger index. Since the check array holds the
+// negative index of the next free state, except for the last free state which
+// has a value of -1, negating this value is the next free state.
 func (m *Matcher) nextFreeState(curFreeState int) int {
 	nextState := -1 * m.Check[curFreeState]
 
@@ -327,6 +296,9 @@ func (m *Matcher) nextFreeState(curFreeState int) int {
 	return nextState
 }
 
+// firstFreeState uses the first value in the check array which points to the
+// first free state. A value of 0 means there are no free states and -1 is
+// returned.
 func (m *Matcher) firstFreeState() int {
 	state := m.Check[0]
 	if state != 0 {
@@ -335,6 +307,8 @@ func (m *Matcher) firstFreeState() int {
 	return -1
 }
 
+// lastFreeState uses the base value of the first free state which points the
+// last free state.
 func (m *Matcher) lastFreeState() int {
 	firstFree := m.firstFreeState()
 	if firstFree != -1 {
@@ -343,40 +317,19 @@ func (m *Matcher) lastFreeState() int {
 	return -1
 }
 
-func (m *Matcher) increaseSize(dsize int) {
-	m.Base = append(m.Base, make([]int, dsize)...)
-	m.Check = append(m.Check, make([]int, dsize)...)
-	m.Fail = append(m.Fail, make([]int, dsize)...)
-}
-
+// hasEdge determines if the fromState has a transition for offset.
 func (m *Matcher) hasEdge(fromState, offset int) bool {
 	toState := m.Base[fromState] + offset
 	return toState > 0 && toState < len(m.Check) && m.Check[toState] == fromState
-	// return toState >= 0 && toState < len(m.Check) && m.Check[toState] == fromState+1
 }
 
-func hasPath(word []byte, m *Matcher) bool {
-	state := 0
-	for _, b := range word {
-		Base := m.Base[state]
-		if Base == LEAF {
-			return false
-		}
-		if Base+int(b) >= len(m.Check) || m.Check[Base+int(b)]-1 != state {
-			return false
-		}
-		state = Base + int(b)
-	}
-	return true
-}
-
-// Match TODO
+// Match represents a matched pattern in the text
 type Match struct {
-	Word  []byte
-	Index int
+	Word  []byte // the matched pattern
+	Index int    // the start index of the match
 }
 
-// FindAll TODO
+// FindAll finds all instances of the patterns in the text.
 func (m *Matcher) FindAll(text []byte) (matches []Match) {
 	state := 0
 	for i, b := range text {
@@ -389,45 +342,8 @@ func (m *Matcher) FindAll(text []byte) (matches []Match) {
 			state = m.Base[state] + offset
 		}
 		for _, word := range m.Output[state] {
-			matches = append(matches, Match{word, i})
+			matches = append(matches, Match{word, i - len(word) + 1})
 		}
 	}
 	return
 }
-
-// func main() {
-// 	// m, _ := Compile([]string{"hers", "she"})
-// 	m := Compile([][]byte{
-// 		[]byte("he"),
-// 		[]byte("she"),
-// 		[]byte("they"),
-// 		[]byte("their"),
-// 		[]byte("where"),
-// 		[]byte("bear"),
-// 		[]byte("taratula"),
-// 		[]byte("adam"),
-// 		[]byte("regard-rethy"),
-// 		[]byte("panda"),
-// 		[]byte("bear"),
-// 		[]byte("golang"),
-// 		[]byte("his"),
-// 		[]byte("hers"),
-// 		[]byte("her"),
-// 	})
-
-// 	fmt.Printf("%v\n", m.Base)
-// 	fmt.Printf("%v\n", m.Check)
-// 	fmt.Printf("%v\n", m.Fail)
-// 	for s, words := range m.Output {
-// 		fmt.Printf("%d =>\n", s)
-// 		for _, word := range words {
-// 			fmt.Println(string(word))
-// 		}
-// 	}
-
-// 	fmt.Println("beshe hers ")
-// 	matches := m.findAll([]byte("beshe hers "))
-// 	for _, match := range matches {
-// 		fmt.Printf("%d - %s\n", match.index, string(match.word))
-// 	}
-// }

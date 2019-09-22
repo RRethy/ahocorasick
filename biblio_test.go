@@ -1,6 +1,9 @@
 package biblio
 
 import (
+	"bufio"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -13,22 +16,22 @@ func TestFindAll(t *testing.T) {
 	}{
 		{
 			[][]byte{[]byte("na"), []byte("ink"), []byte("ki")},
-			[]Match{{[]byte("ink"), 2}, {[]byte("ki"), 3}},
+			[]Match{{[]byte("ink"), 0}, {[]byte("ki"), 2}},
 			[]byte("inking"),
 		},
 		{
 			[][]byte{[]byte("ca"), []byte("erica"), []byte("rice")},
-			[]Match{{[]byte("ca"), 4}, {[]byte("erica"), 4}},
+			[]Match{{[]byte("ca"), 3}, {[]byte("erica"), 0}},
 			[]byte("erican"),
 		},
 		{
 			[][]byte{[]byte("he"), []byte("she"), []byte("his"), []byte("hers")},
-			[]Match{{[]byte("he"), 3}, {[]byte("she"), 3}, {[]byte("hers"), 5}},
+			[]Match{{[]byte("he"), 2}, {[]byte("she"), 1}, {[]byte("hers"), 2}},
 			[]byte("ushers"),
 		},
 		{
 			[][]byte{[]byte("they"), []byte("their"), []byte("theyre"), []byte("the"), []byte("tea"), []byte("te"), []byte("team"), []byte("go"), []byte("goo"), []byte("good"), []byte("oode")},
-			[]Match{{[]byte("the"), 2}, {[]byte("they"), 3}, {[]byte("theyre"), 5}, {[]byte("go"), 14}, {[]byte("goo"), 15}, {[]byte("good"), 16}, {[]byte("oode"), 17}, {[]byte("te"), 20}, {[]byte("tea"), 21}, {[]byte("team"), 22}},
+			[]Match{{[]byte("the"), 0}, {[]byte("they"), 0}, {[]byte("theyre"), 0}, {[]byte("go"), 13}, {[]byte("goo"), 13}, {[]byte("good"), 13}, {[]byte("oode"), 14}, {[]byte("te"), 19}, {[]byte("tea"), 19}, {[]byte("team"), 19}},
 			[]byte("theyre not a goode team"),
 		},
 		{
@@ -43,7 +46,7 @@ func TestFindAll(t *testing.T) {
 		},
 		{
 			[][]byte{[]byte("锅"), []byte("持有人"), []byte("potholderz"), []byte("MF DOOM")},
-			[]Match{{[]byte("potholderz"), 9}, {[]byte("MF DOOM"), 20}, {[]byte("锅"), 41}, {[]byte("持有人"), 51}},
+			[]Match{{[]byte("potholderz"), 0}, {[]byte("MF DOOM"), 14}, {[]byte("锅"), 39}, {[]byte("持有人"), 43}},
 			[]byte("potholderz by MF DOOM hot shit aw shit 锅 持有人"),
 		},
 	}
@@ -55,245 +58,19 @@ func TestFindAll(t *testing.T) {
         Text:     %s
 		Expected: %v
 		Got:      %v
-		Base:     %v
-		Check:    %v
-		Fail:     %v
-		Output:   %v
-		`, test.text, test.expected, got, matcher.Base, matcher.Check, matcher.Fail, matcher.Output)
+		`, test.text, test.expected, got)
 		}
 	}
 }
 
-func BenchmarkFindAll(b *testing.B) {
-	matcher := Compile([][]byte{
-		[]byte("he"),
-		[]byte("she"),
-		[]byte("they"),
-		[]byte("their"),
-		[]byte("where"),
-		[]byte("bear"),
-		[]byte("taratula"),
-		[]byte("adam"),
-		[]byte("regard-rethy"),
-		[]byte("panda"),
-		[]byte("bear"),
-		[]byte("golang"),
-		[]byte("his"),
-		[]byte("hers"),
-		[]byte("her"),
-	})
-	for i := 0; i < b.N; i++ {
-		matcher.FindAll([]byte(`
-ushers golang to     be rrrrrrrr tartula taratulapandawhere
-ushers golang to     be rrrrrrrr tartula taratulapandawhere
-ushers golang to     be rrrrrrrr tartula taratulapandawhere
-ushers golang to     be rrrrrrrr tartula taratulapandawhere
-ushers golang to     be rrrrrrrr tartula taratulapandawhere
-ushers golang to     be rrrrrrrr tartula taratulapandawhere
-ushers golang to     be rrrrrrrr tartula taratulapandawhere
-ushers golang to     be rrrrrrrr tartula taratulapandawhere
-ushers golang to     be rrrrrrrr tartula taratulapandawhere
-ushers golang to     be rrrrrrrr tartula taratulapandawhere
-ushers golang to     be rrrrrrrr tartula taratulapandawhere
-	`))
-	}
-}
-
-func BenchmarkCompile(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		Compile([][]byte{
-			[]byte("pssahe"),
-			[]byte("pssashe"),
-			[]byte("pssathey"),
-			[]byte("pssatheir"),
-			[]byte("pssawhere"),
-			[]byte("pssabear"),
-			[]byte("pssataratula"),
-			[]byte("pssaadam"),
-			[]byte("pssaregard-rethy"),
-			[]byte("pssapanda"),
-			[]byte("pssabear"),
-			[]byte("pssagolang"),
-			[]byte("pssahis"),
-			[]byte("pssahers"),
-			[]byte("pssaher"),
-			[]byte("psahe"),
-			[]byte("psashe"),
-			[]byte("psathey"),
-			[]byte("psatheir"),
-			[]byte("psawhere"),
-			[]byte("psabear"),
-			[]byte("psataratula"),
-			[]byte("psaadam"),
-			[]byte("psaregard-rethy"),
-			[]byte("psapanda"),
-			[]byte("psabear"),
-			[]byte("psagolang"),
-			[]byte("psahis"),
-			[]byte("psahers"),
-			[]byte("psaher"),
-			[]byte("pshe"),
-			[]byte("psshe"),
-			[]byte("psthey"),
-			[]byte("pstheir"),
-			[]byte("pswhere"),
-			[]byte("psbear"),
-			[]byte("pstaratula"),
-			[]byte("psadam"),
-			[]byte("psregard-rethy"),
-			[]byte("pspanda"),
-			[]byte("psbear"),
-			[]byte("psgolang"),
-			[]byte("pshis"),
-			[]byte("pshers"),
-			[]byte("psher"),
-			[]byte("psahe"),
-			[]byte("psashe"),
-			[]byte("psathey"),
-			[]byte("psatheir"),
-			[]byte("psawhere"),
-			[]byte("psabear"),
-			[]byte("psataratula"),
-			[]byte("psaadam"),
-			[]byte("psaregard-rethy"),
-			[]byte("psapanda"),
-			[]byte("psabear"),
-			[]byte("psagolang"),
-			[]byte("psahis"),
-			[]byte("psahers"),
-			[]byte("psaher"),
-			[]byte("pahe"),
-			[]byte("pashe"),
-			[]byte("pathey"),
-			[]byte("patheir"),
-			[]byte("pawhere"),
-			[]byte("pabear"),
-			[]byte("pataratula"),
-			[]byte("paadam"),
-			[]byte("paregard-rethy"),
-			[]byte("papanda"),
-			[]byte("pabear"),
-			[]byte("pagolang"),
-			[]byte("pahis"),
-			[]byte("pahers"),
-			[]byte("paher"),
-			[]byte("phe"),
-			[]byte("pshe"),
-			[]byte("pthey"),
-			[]byte("ptheir"),
-			[]byte("pwhere"),
-			[]byte("pbear"),
-			[]byte("ptaratula"),
-			[]byte("padam"),
-			[]byte("pregard-rethy"),
-			[]byte("ppanda"),
-			[]byte("pbear"),
-			[]byte("pgolang"),
-			[]byte("phis"),
-			[]byte("phers"),
-			[]byte("pher"),
-			[]byte("ssahe"),
-			[]byte("ssashe"),
-			[]byte("ssathey"),
-			[]byte("ssatheir"),
-			[]byte("ssawhere"),
-			[]byte("ssabear"),
-			[]byte("ssataratula"),
-			[]byte("ssaadam"),
-			[]byte("ssaregard-rethy"),
-			[]byte("ssapanda"),
-			[]byte("ssabear"),
-			[]byte("ssagolang"),
-			[]byte("ssahis"),
-			[]byte("ssahers"),
-			[]byte("ssaher"),
-			[]byte("sahe"),
-			[]byte("sashe"),
-			[]byte("sathey"),
-			[]byte("satheir"),
-			[]byte("sawhere"),
-			[]byte("sabear"),
-			[]byte("sataratula"),
-			[]byte("saadam"),
-			[]byte("saregard-rethy"),
-			[]byte("sapanda"),
-			[]byte("sabear"),
-			[]byte("sagolang"),
-			[]byte("sahis"),
-			[]byte("sahers"),
-			[]byte("saher"),
-			[]byte("she"),
-			[]byte("sshe"),
-			[]byte("sthey"),
-			[]byte("stheir"),
-			[]byte("swhere"),
-			[]byte("sbear"),
-			[]byte("staratula"),
-			[]byte("sadam"),
-			[]byte("sregard-rethy"),
-			[]byte("spanda"),
-			[]byte("sbear"),
-			[]byte("sgolang"),
-			[]byte("shis"),
-			[]byte("shers"),
-			[]byte("sher"),
-			[]byte("sahe"),
-			[]byte("sashe"),
-			[]byte("sathey"),
-			[]byte("satheir"),
-			[]byte("sawhere"),
-			[]byte("sabear"),
-			[]byte("sataratula"),
-			[]byte("saadam"),
-			[]byte("saregard-rethy"),
-			[]byte("sapanda"),
-			[]byte("sabear"),
-			[]byte("sagolang"),
-			[]byte("sahis"),
-			[]byte("sahers"),
-			[]byte("saher"),
-			[]byte("ahe"),
-			[]byte("ashe"),
-			[]byte("athey"),
-			[]byte("atheir"),
-			[]byte("awhere"),
-			[]byte("abear"),
-			[]byte("ataratula"),
-			[]byte("aadam"),
-			[]byte("aregard-rethy"),
-			[]byte("apanda"),
-			[]byte("abear"),
-			[]byte("agolang"),
-			[]byte("ahis"),
-			[]byte("ahers"),
-			[]byte("aher"),
-			[]byte("he"),
-			[]byte("she"),
-			[]byte("they"),
-			[]byte("their"),
-			[]byte("where"),
-			[]byte("bear"),
-			[]byte("taratula"),
-			[]byte("adam"),
-			[]byte("regard-rethy"),
-			[]byte("panda"),
-			[]byte("bear"),
-			[]byte("golang"),
-			[]byte("his"),
-			[]byte("hers"),
-			[]byte("her"),
-		})
-	}
-}
-
-func TestFoobar(t *testing.T) {
+func TestIncreaseSize(t *testing.T) {
 	m := &Matcher{
 		[]int{5, 0, 0},
 		[]int{0, 0, 0},
 		[]int{0, 0, 0},
 		map[int][][]byte{},
 	}
-	m.Foobar(1)
+	m.increaseSize(1)
 	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -3}) {
 		t.Errorf("Got: %v\n", m.Base)
 	}
@@ -301,7 +78,7 @@ func TestFoobar(t *testing.T) {
 		t.Errorf("Got: %v\n", m.Check)
 	}
 
-	m.Foobar(1)
+	m.increaseSize(1)
 	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -4, -3}) {
 		t.Errorf("Got: %v\n", m.Base)
 	}
@@ -309,7 +86,7 @@ func TestFoobar(t *testing.T) {
 		t.Errorf("Got: %v\n", m.Check)
 	}
 
-	m.Foobar(1)
+	m.increaseSize(1)
 	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -5, -3, -4}) {
 		t.Errorf("Got: %v\n", m.Base)
 	}
@@ -323,7 +100,7 @@ func TestFoobar(t *testing.T) {
 		[]int{0, 0, 0},
 		map[int][][]byte{},
 	}
-	m.Foobar(3)
+	m.increaseSize(3)
 	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -5, -3, -4}) {
 		t.Errorf("Got: %v\n", m.Base)
 	}
@@ -331,7 +108,7 @@ func TestFoobar(t *testing.T) {
 		t.Errorf("Got: %v\n", m.Check)
 	}
 
-	m.Foobar(3)
+	m.increaseSize(3)
 	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -8, -3, -4, -5, -6, -7}) {
 		t.Errorf("Got: %v\n", m.Base)
 	}
@@ -345,7 +122,7 @@ func TestFoobar(t *testing.T) {
 		[]int{0},
 		map[int][][]byte{},
 	}
-	m.Foobar(5)
+	m.increaseSize(5)
 	if !reflect.DeepEqual(m.Base, []int{0, -5, -1, -2, -3, -4}) {
 		t.Errorf("Got: %v\n", m.Base)
 	}
@@ -359,7 +136,7 @@ func TestFoobar(t *testing.T) {
 		[]int{},
 		map[int][][]byte{},
 	}
-	m.Foobar(5)
+	m.increaseSize(5)
 	if !reflect.DeepEqual(m.Base, []int{-103, -1867, -6, -2, -3, -4, -5}) {
 		t.Errorf("Got: %v\n", m.Base)
 	}
@@ -367,65 +144,6 @@ func TestFoobar(t *testing.T) {
 		t.Errorf("Got: %v\n", m.Check)
 	}
 }
-
-// func TestFoofb(t *testing.T) {
-// 	m := &Matcher{
-// 		[]int{5, 0, 0, -3},
-// 		[]int{-3, 0, 0, -1},
-// 		[]int{},
-// 		map[int][][]byte{},
-// 	}
-// 	base := m.Foofb([]byte{byte(2), byte(5)})
-// 	if base != 1 {
-// 		t.Errorf("Got: %d\n", base)
-// 	}
-// 	base = m.Foofb([]byte{byte(5)})
-// 	if base != -2 {
-// 		t.Errorf("Got: %d\n", base)
-// 	}
-// 	base = m.Foofb([]byte{byte(2), byte(5), byte(10)})
-// 	if base != 5 {
-// 		t.Errorf("Got: %d\n", base)
-// 	}
-// 	base = m.Foofb([]byte{})
-// 	if base != LEAF {
-// 		t.Errorf("Got: %d\n", base)
-// 	}
-
-// 	m = &Matcher{
-// 		[]int{5, 0, 0},
-// 		[]int{0, 0, 0},
-// 		[]int{0, 0, 0},
-// 		map[int][][]byte{},
-// 	}
-// 	base = m.Foofb([]byte{byte(2), byte(5)})
-// 	if base != 1 {
-// 		t.Errorf("Got: %d\n", base)
-// 	}
-// 	if len(m.Check) != 7 {
-// 		t.Errorf("Got: %d\n", m.Check)
-// 	}
-// 	if len(m.Base) != 7 {
-// 		t.Errorf("Got: %d\n", m.Base)
-// 	}
-
-// 	m = &Matcher{
-// 		[]int{5, 0, 0, -8, -3, -4, -5, -6, -7},
-// 		[]int{-3, 0, 0, -4, -5, -6, -7, -8, -1},
-// 		[]int{},
-// 		map[int][][]byte{},
-// 	}
-// 	base = m.Foofb([]byte{byte(2), byte(4), byte(6), byte(8)})
-// 	if base != 7 {
-// 		t.Errorf("Got: %d\n", base)
-// 	}
-// 	if len(m.Check) != 16 {
-// 		t.Errorf("Got: %d\n", m.Check)
-// 	}
-// 	if len(m.Base) != 16 {
-// 		t.Errorf("Got: %d\n", m.Base)
-// 	}
-// }
 
 func TestNextFreeState(t *testing.T) {
 	m := &Matcher{
@@ -438,7 +156,77 @@ func TestNextFreeState(t *testing.T) {
 	if nextState != -1 {
 		t.Errorf("Got: %d\n", nextState)
 	}
+
+	m.increaseSize(3)
+	nextState = m.nextFreeState(3)
+	if nextState != 4 {
+		t.Errorf("Got: %d\n", nextState)
+	}
 }
 
 func TestOccupyState(t *testing.T) {
+	m := &Matcher{
+		[]int{5, 0, 0, -3},
+		[]int{-3, 0, 0, -1},
+		[]int{},
+		map[int][][]byte{},
+	}
+	m.increaseSize(5)
+	m.occupyState(3, 1)
+	m.occupyState(4, 1)
+	m.occupyState(8, 1)
+	m.occupyState(6, 1)
+	m.occupyState(5, 1)
+	m.occupyState(7, 1)
+	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -1867, -1867, -1867, -1867, -1867, -1867}) {
+		t.Errorf("Got: %v\n", m.Base)
+	}
+	if !reflect.DeepEqual(m.Check, []int{0, 0, 0, 1, 1, 1, 1, 1, 1}) {
+		t.Errorf("Got: %v\n", m.Check)
+	}
+}
+
+func readLines(fname string) ([][]byte, error) {
+	file, err := os.Open(fname)
+	var pattens [][]byte
+	if err != nil {
+		return pattens, err
+	}
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		pattens = append(pattens, scanner.Bytes())
+	}
+	return pattens, nil
+}
+
+func BenchmarkCompile(b *testing.B) {
+	patterns, err := readLines("./words.txt")
+	if err != nil {
+		b.Error(err)
+		return
+	}
+
+	for i := 0; i < b.N; i++ {
+		Compile(patterns)
+	}
+}
+
+func BenchmarkFindAll(b *testing.B) {
+	patterns, err := readLines("./words.txt")
+	if err != nil {
+		b.Error(err)
+		return
+	}
+
+	text, err := ioutil.ReadFile("./war-and-peace.txt")
+	if err != nil {
+		b.Error(err)
+		return
+	}
+
+	for i := 0; i < b.N; i++ {
+		m := Compile(patterns)
+		m.FindAll(text)
+	}
 }
