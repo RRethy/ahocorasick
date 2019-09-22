@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestFindAll(t *testing.T) {
+func TestFindAllByteSlice(t *testing.T) {
 	tests := []struct {
 		patterns [][]byte
 		expected []Match
@@ -51,8 +51,8 @@ func TestFindAll(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		matcher := Compile(test.patterns)
-		got := matcher.FindAll(test.text)
+		matcher := CompileByteSlices(test.patterns)
+		got := matcher.FindAllByteSlice(test.text)
 		if !(len(got) == 0 && len(test.expected) == 0) && !reflect.DeepEqual(got, test.expected) {
 			t.Errorf(`
         Text:     %s
@@ -200,7 +200,7 @@ func readLines(fname string) ([][]byte, error) {
 	return pattens, nil
 }
 
-func BenchmarkCompile(b *testing.B) {
+func BenchmarkCompileByteSlices(b *testing.B) {
 	patterns, err := readLines("./words.txt")
 	if err != nil {
 		b.Error(err)
@@ -208,11 +208,11 @@ func BenchmarkCompile(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		Compile(patterns)
+		CompileByteSlices(patterns)
 	}
 }
 
-func BenchmarkFindAll(b *testing.B) {
+func BenchmarkFindAllByteSlice(b *testing.B) {
 	patterns, err := readLines("./words.txt")
 	if err != nil {
 		b.Error(err)
@@ -226,7 +226,7 @@ func BenchmarkFindAll(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		m := Compile(patterns)
-		m.FindAll(text)
+		m := CompileByteSlices(patterns)
+		m.FindAllByteSlice(text)
 	}
 }

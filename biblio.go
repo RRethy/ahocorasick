@@ -53,9 +53,9 @@ Output: %v
 `, m.Base, m.Check, m.Fail, m.Output)
 }
 
-// Compile compiles a Matcher from a slice of byte slices. This Matcher can be
+// CompileByteSlices compiles a Matcher from a slice of byte slices. This Matcher can be
 // used to find occurrences of each pattern in a text.
-func Compile(words [][]byte) *Matcher {
+func CompileByteSlices(words [][]byte) *Matcher {
 	m := new(Matcher)
 	m.Base = make([]int, 2048)[:1]
 	m.Check = make([]int, 2048)[:1]
@@ -124,6 +124,16 @@ func Compile(words [][]byte) *Matcher {
 	}
 
 	return m
+}
+
+// CompileStrings compiles a Matcher from a slice of strings. This Matcher can
+// be used to find occurrences of each pattern in a text.
+func CompileStrings(words []string) *Matcher {
+	var wordByteSlices [][]byte
+	for _, word := range words {
+		wordByteSlices = append(wordByteSlices, []byte(word))
+	}
+	return CompileByteSlices(wordByteSlices)
 }
 
 // occupyState will correctly occupy state so it maintains the
@@ -329,8 +339,8 @@ type Match struct {
 	Index int    // the start index of the match
 }
 
-// FindAll finds all instances of the patterns in the text.
-func (m *Matcher) FindAll(text []byte) (matches []Match) {
+// FindAllByteSlice finds all instances of the patterns in the text.
+func (m *Matcher) FindAllByteSlice(text []byte) (matches []Match) {
 	state := 0
 	for i, b := range text {
 		offset := int(b)
@@ -346,4 +356,9 @@ func (m *Matcher) FindAll(text []byte) (matches []Match) {
 		}
 	}
 	return
+}
+
+// FindAllString finds all instances of the patterns in the text.
+func (m *Matcher) FindAllString(text string) []Match {
+	return m.FindAllByteSlice([]byte(text))
 }
