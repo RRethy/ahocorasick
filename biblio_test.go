@@ -2,7 +2,6 @@ package biblio
 
 import (
 	"bufio"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -186,22 +185,46 @@ func TestOccupyState(t *testing.T) {
 	}
 }
 
-func readLines(fname string) ([][]byte, error) {
+func readLines(fname string, every int) ([][]byte, error) {
 	file, err := os.Open(fname)
+	defer file.Close()
 	var pattens [][]byte
 	if err != nil {
 		return pattens, err
 	}
 
 	scanner := bufio.NewScanner(file)
+	i := 0
 	for scanner.Scan() {
-		pattens = append(pattens, scanner.Bytes())
+		if i%every == 0 {
+			pattens = append(pattens, scanner.Bytes())
+		}
+		i++
 	}
 	return pattens, nil
 }
 
-func BenchmarkCompileByteSlices(b *testing.B) {
-	patterns, err := readLines("./words.txt")
+func readBytes(fname string, every int) ([]byte, error) {
+	file, err := os.Open(fname)
+	defer file.Close()
+	var bytes []byte
+	if err != nil {
+		return bytes, err
+	}
+
+	scanner := bufio.NewScanner(file)
+	i := 0
+	for scanner.Scan() {
+		if i%every == 0 {
+			bytes = append(bytes, scanner.Bytes()...)
+		}
+		i++
+	}
+	return bytes, nil
+}
+
+func benchCompileByteSlices(b *testing.B, every int) {
+	patterns, err := readLines("./words.txt", every)
 	if err != nil {
 		b.Error(err)
 		return
@@ -212,14 +235,14 @@ func BenchmarkCompileByteSlices(b *testing.B) {
 	}
 }
 
-func BenchmarkFindAllByteSlice(b *testing.B) {
-	patterns, err := readLines("./words.txt")
+func benchFindAllByteSlice(b *testing.B, every int) {
+	patterns, err := readLines("./words.txt", 1000)
 	if err != nil {
 		b.Error(err)
 		return
 	}
 
-	text, err := ioutil.ReadFile("./war-and-peace.txt")
+	text, err := readBytes("./war-and-peace.txt", every)
 	if err != nil {
 		b.Error(err)
 		return
@@ -229,4 +252,36 @@ func BenchmarkFindAllByteSlice(b *testing.B) {
 		m := CompileByteSlices(patterns)
 		m.FindAllByteSlice(text)
 	}
+}
+
+func BenchmarkCompileByteSlicesMassive(b *testing.B) {
+	benchCompileByteSlices(b, 10)
+}
+
+func BenchmarkFindAllByteSliceMassive(b *testing.B) {
+	benchFindAllByteSlice(b, 1)
+}
+
+func BenchmarkCompileByteSlicesLarge(b *testing.B) {
+	benchCompileByteSlices(b, 100)
+}
+
+func BenchmarkFindAllByteSliceLarge(b *testing.B) {
+	benchFindAllByteSlice(b, 10)
+}
+
+func BenchmarkCompileByteSlicesMedium(b *testing.B) {
+	benchCompileByteSlices(b, 1000)
+}
+
+func BenchmarkFindAllByteSliceMedium(b *testing.B) {
+	benchFindAllByteSlice(b, 100)
+}
+
+func BenchmarkCompileByteSlicesSmall(b *testing.B) {
+	benchCompileByteSlices(b, 10000)
+}
+
+func BenchmarkFindAllByteSliceSmall(b *testing.B) {
+	benchFindAllByteSlice(b, 1000)
 }
