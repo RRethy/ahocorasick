@@ -254,34 +254,38 @@ func benchFindAllByteSlice(b *testing.B, every int) {
 	}
 }
 
-func BenchmarkCompileByteSlicesMassive(b *testing.B) {
+func BenchmarkCompileByteSlices1(b *testing.B) {
+	benchCompileByteSlices(b, 1)
+}
+
+func BenchmarkCompileByteSlices10(b *testing.B) {
 	benchCompileByteSlices(b, 10)
 }
 
-func BenchmarkFindAllByteSliceMassive(b *testing.B) {
-	benchFindAllByteSlice(b, 1)
-}
-
-func BenchmarkCompileByteSlicesLarge(b *testing.B) {
+func BenchmarkCompileByteSlices100(b *testing.B) {
 	benchCompileByteSlices(b, 100)
 }
 
-func BenchmarkFindAllByteSliceLarge(b *testing.B) {
-	benchFindAllByteSlice(b, 10)
-}
-
-func BenchmarkCompileByteSlicesMedium(b *testing.B) {
+func BenchmarkCompileByteSlices1000(b *testing.B) {
 	benchCompileByteSlices(b, 1000)
 }
 
-func BenchmarkFindAllByteSliceMedium(b *testing.B) {
-	benchFindAllByteSlice(b, 100)
-}
-
-func BenchmarkCompileByteSlicesSmall(b *testing.B) {
+func BenchmarkCompileByteSlices10000(b *testing.B) {
 	benchCompileByteSlices(b, 10000)
 }
 
-func BenchmarkFindAllByteSliceSmall(b *testing.B) {
+func BenchmarkFindAllByteSlice1(b *testing.B) {
+	benchFindAllByteSlice(b, 1)
+}
+
+func BenchmarkFindAllByteSlice10(b *testing.B) {
+	benchFindAllByteSlice(b, 10)
+}
+
+func BenchmarkFindAllByteSlice100(b *testing.B) {
+	benchFindAllByteSlice(b, 100)
+}
+
+func BenchmarkFindAllByteSlice1000(b *testing.B) {
 	benchFindAllByteSlice(b, 1000)
 }
