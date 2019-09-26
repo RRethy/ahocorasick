@@ -38,10 +38,10 @@ func (sslice *indexedStringSlice) Swap(i, j int) {
 
 // Matcher is the pattern matching state machine.
 type Matcher struct {
-	Base   []int            // base array in the double array trie
-	Check  []int            // check array in the double array trie
-	Fail   []int            // fail function
-	Output map[int][][]byte // output function
+	Base   []int             // base array in the double array trie
+	Check  []int             // check array in the double array trie
+	Fail   []int             // fail function
+	Output map[int][]*[]byte // output function
 }
 
 func (m *Matcher) String() string {
@@ -60,7 +60,7 @@ func CompileByteSlices(words [][]byte) *Matcher {
 	m.Base = make([]int, 2048)[:1]
 	m.Check = make([]int, 2048)[:1]
 	m.Fail = make([]int, 2048)[:1]
-	m.Output = map[int][][]byte{}
+	m.Output = map[int][]*[]byte{}
 
 	// Represents a node in the implicit trie of words
 	type trienode struct {
@@ -115,7 +115,7 @@ func CompileByteSlices(words [][]byte) *Matcher {
 				if len(node.suffixes.slices[i]) > depth+1 {
 					newnode.suffixes.slices = append(newnode.suffixes.slices, node.suffixes.slices[i])
 				} else {
-					m.Output[newState] = append(m.Output[newState], node.suffixes.slices[i])
+					m.Output[newState] = append(m.Output[newState], &node.suffixes.slices[i])
 				}
 				i++
 			}
@@ -352,7 +352,7 @@ func (m *Matcher) FindAllByteSlice(text []byte) (matches []Match) {
 			state = m.Base[state] + offset
 		}
 		for _, word := range m.Output[state] {
-			matches = append(matches, Match{word, i - len(word) + 1})
+			matches = append(matches, Match{*word, i - len(*word) + 1})
 		}
 	}
 	return
