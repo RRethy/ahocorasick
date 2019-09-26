@@ -2,10 +2,12 @@ package biblio
 
 import (
 	"bufio"
+	"bytes"
 	bobu "github.com/BobuSumisu/aho-corasick"
 	anknown "github.com/anknown/ahocorasick"
-	cloudflare "github.com/cloudflare/ahocorasick"
-	iohub "github.com/iohub/ahocorasick"
+	_ "github.com/cloudflare/ahocorasick"
+	_ "github.com/iohub/ahocorasick"
+	"io"
 	"os"
 	"reflect"
 	"testing"
@@ -227,7 +229,33 @@ func readBytes(fname string, every int) ([]byte, error) {
 	return bytes, nil
 }
 
-func benchCompileByteSlices(b *testing.B, every int) {
+func readRunes(filename string, every int) ([][]rune, error) {
+	dict := [][]rune{}
+
+	f, err := os.OpenFile(filename, os.O_RDONLY, 0660)
+	if err != nil {
+		return nil, err
+	}
+
+	r := bufio.NewReader(f)
+	i := 0
+	for {
+		l, err := r.ReadBytes('\n')
+		if err != nil || err == io.EOF {
+			break
+		}
+		l = bytes.TrimSpace(l)
+
+		if i%every == 0 {
+			dict = append(dict, bytes.Runes(l))
+		}
+		i++
+	}
+
+	return dict, nil
+}
+
+func benchBiblioCompileByteSlices(b *testing.B, every int) {
 	patterns, err := readLines("./words.txt", every)
 	if err != nil {
 		b.Error(err)
@@ -239,7 +267,7 @@ func benchCompileByteSlices(b *testing.B, every int) {
 	}
 }
 
-func benchFindAllByteSlice(b *testing.B, every int) {
+func benchBiblioFindAllByteSlice(b *testing.B, every int) {
 	patterns, err := readLines("./words.txt", 1000)
 	if err != nil {
 		b.Error(err)
@@ -252,44 +280,183 @@ func benchFindAllByteSlice(b *testing.B, every int) {
 		return
 	}
 
+	m := CompileByteSlices(patterns)
 	for i := 0; i < b.N; i++ {
-		m := CompileByteSlices(patterns)
 		m.FindAllByteSlice(text)
 	}
 }
 
-func Benchmark1ModCompileByteSlices(b *testing.B) {
-	benchCompileByteSlices(b, 1)
+func BenchmarkBiblio1ModCompileByteSlices(b *testing.B) {
+	benchBiblioCompileByteSlices(b, 1)
 }
 
-func Benchmark10ModCompileByteSlices(b *testing.B) {
-	benchCompileByteSlices(b, 10)
+func BenchmarkBiblio10ModCompileByteSlices(b *testing.B) {
+	benchBiblioCompileByteSlices(b, 10)
 }
 
-func Benchmark100ModCompileByteSlices(b *testing.B) {
-	benchCompileByteSlices(b, 100)
+func BenchmarkBiblio100ModCompileByteSlices(b *testing.B) {
+	benchBiblioCompileByteSlices(b, 100)
 }
 
-func Benchmark1000ModCompileByteSlices(b *testing.B) {
-	benchCompileByteSlices(b, 1000)
+func BenchmarkBiblio1000ModCompileByteSlices(b *testing.B) {
+	benchBiblioCompileByteSlices(b, 1000)
 }
 
-func Benchmark10000ModCompileByteSlices(b *testing.B) {
-	benchCompileByteSlices(b, 10000)
+func BenchmarkBiblio10000ModCompileByteSlices(b *testing.B) {
+	benchBiblioCompileByteSlices(b, 10000)
 }
 
-func Benchmark1ModFindAllByteSlice(b *testing.B) {
-	benchFindAllByteSlice(b, 1)
+func BenchmarkBiblio1ModFindAllByteSlice(b *testing.B) {
+	benchBiblioFindAllByteSlice(b, 1)
 }
 
-func Benchmark10ModFindAllByteSlice(b *testing.B) {
-	benchFindAllByteSlice(b, 10)
+func BenchmarkBiblio10ModFindAllByteSlice(b *testing.B) {
+	benchBiblioFindAllByteSlice(b, 10)
 }
 
-func Benchmark100ModFindAllByteSlice(b *testing.B) {
-	benchFindAllByteSlice(b, 100)
+func BenchmarkBiblio100ModFindAllByteSlice(b *testing.B) {
+	benchBiblioFindAllByteSlice(b, 100)
 }
 
-func Benchmark1000ModFindAllByteSlice(b *testing.B) {
-	benchFindAllByteSlice(b, 1000)
+func BenchmarkBiblio1000ModFindAllByteSlice(b *testing.B) {
+	benchBiblioFindAllByteSlice(b, 1000)
+}
+
+// BOBU
+func benchBobuCompile(b *testing.B, every int) {
+	patterns, err := readLines("./words.txt", every)
+	if err != nil {
+		b.Error(err)
+		return
+	}
+
+	for i := 0; i < b.N; i++ {
+		bobu.NewTrieBuilder().AddPatterns(patterns).Build()
+	}
+}
+
+func benchBobuFind(b *testing.B, every int) {
+	patterns, err := readLines("./words.txt", 1000)
+	if err != nil {
+		b.Error(err)
+		return
+	}
+
+	text, err := readBytes("./war-and-peace.txt", every)
+	if err != nil {
+		b.Error(err)
+		return
+	}
+
+	t := bobu.NewTrieBuilder().AddPatterns(patterns).Build()
+	for i := 0; i < b.N; i++ {
+		t.Match(text)
+	}
+}
+
+func BenchmarkBobu1ModCompile(b *testing.B) {
+	benchBobuCompile(b, 1)
+}
+
+func BenchmarkBobu10ModCompile(b *testing.B) {
+	benchBobuCompile(b, 10)
+}
+
+func BenchmarkBobu100ModCompile(b *testing.B) {
+	benchBobuCompile(b, 100)
+}
+
+func BenchmarkBobu1000ModCompile(b *testing.B) {
+	benchBobuCompile(b, 1000)
+}
+
+func BenchmarkBobu10000ModCompile(b *testing.B) {
+	benchBobuCompile(b, 10000)
+}
+
+func BenchmarkBobu1ModFind(b *testing.B) {
+	benchBobuFind(b, 1)
+}
+
+func BenchmarkBobu10ModFind(b *testing.B) {
+	benchBobuFind(b, 10)
+}
+
+func BenchmarkBobu100ModFind(b *testing.B) {
+	benchBobuFind(b, 100)
+}
+
+func BenchmarkBobu1000ModFind(b *testing.B) {
+	benchBobuFind(b, 1000)
+}
+
+// ANKNOWN
+func benchAnknownCompile(b *testing.B, every int) {
+	patterns, err := readRunes("./words.txt", every)
+	if err != nil {
+		b.Error(err)
+		return
+	}
+
+	for i := 0; i < b.N; i++ {
+		m := new(anknown.Machine)
+		m.Build(patterns)
+	}
+}
+
+func benchAnknownFind(b *testing.B, every int) {
+	patterns, err := readRunes("./words.txt", 1000)
+	if err != nil {
+		b.Error(err)
+		return
+	}
+	m := new(anknown.Machine)
+	m.Build(patterns)
+
+	text, err := readBytes("./war-and-peace.txt", every)
+	if err != nil {
+		b.Error(err)
+		return
+	}
+	textRunes := bytes.Runes(text)
+
+	for i := 0; i < b.N; i++ {
+		m.MultiPatternSearch(textRunes, false)
+	}
+}
+
+func BenchmarkAnknown1ModCompile(b *testing.B) {
+	benchAnknownCompile(b, 1)
+}
+
+func BenchmarkAnknown10ModCompile(b *testing.B) {
+	benchAnknownCompile(b, 10)
+}
+
+func BenchmarkAnknown100ModCompile(b *testing.B) {
+	benchAnknownCompile(b, 100)
+}
+
+func BenchmarkAnknown1000ModCompile(b *testing.B) {
+	benchAnknownCompile(b, 1000)
+}
+
+func BenchmarkAnknown10000ModCompile(b *testing.B) {
+	benchAnknownCompile(b, 10000)
+}
+
+func BenchmarkAnknown1ModFind(b *testing.B) {
+	benchAnknownFind(b, 1)
+}
+
+func BenchmarkAnknown10ModFind(b *testing.B) {
+	benchAnknownFind(b, 10)
+}
+
+func BenchmarkAnknown100ModFind(b *testing.B) {
+	benchAnknownFind(b, 100)
+}
+
+func BenchmarkAnknown1000ModFind(b *testing.B) {
+	benchAnknownFind(b, 1000)
 }
