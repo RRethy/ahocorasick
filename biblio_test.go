@@ -5,8 +5,6 @@ import (
 	"bytes"
 	bobu "github.com/BobuSumisu/aho-corasick"
 	anknown "github.com/anknown/ahocorasick"
-	_ "github.com/cloudflare/ahocorasick"
-	_ "github.com/iohub/ahocorasick"
 	"io"
 	"os"
 	"reflect"
