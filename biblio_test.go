@@ -2,6 +2,10 @@ package biblio
 
 import (
 	"bufio"
+	bobu "github.com/BobuSumisu/aho-corasick"
+	anknown "github.com/anknown/ahocorasick"
+	cloudflare "github.com/cloudflare/ahocorasick"
+	iohub "github.com/iohub/ahocorasick"
 	"os"
 	"reflect"
 	"testing"
