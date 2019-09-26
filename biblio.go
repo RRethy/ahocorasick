@@ -189,8 +189,12 @@ func (m *Matcher) setFailState(state, parentState, offset int) {
 // This allows us to match substrings, commenting out this body would match
 // every word that is not a substring.
 func (m *Matcher) unionFailOutput(state, failState int) {
-	for _, word := range m.Output[failState] {
-		m.Output[state] = append(m.Output[state], word)
+	failWordsLen := len(m.Output[failState])
+	if failWordsLen > 0 {
+		m.Output[state] = make([]*[]byte, failWordsLen+8)[:0]
+		for _, word := range m.Output[failState] {
+			m.Output[state] = append(m.Output[state], word)
+		}
 	}
 }
 
