@@ -81,7 +81,7 @@ func TestIncreaseSize(t *testing.T) {
 		[]int{5, 0, 0},
 		[]int{0, 0, 0},
 		[]int{0, 0, 0},
-		map[int][]int{},
+		[][]int{},
 	}
 	m.increaseSize(1)
 	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -3}) {
@@ -111,7 +111,7 @@ func TestIncreaseSize(t *testing.T) {
 		[]int{5, 0, 0},
 		[]int{0, 0, 0},
 		[]int{0, 0, 0},
-		map[int][]int{},
+		[][]int{},
 	}
 	m.increaseSize(3)
 	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -5, -3, -4}) {
@@ -133,7 +133,7 @@ func TestIncreaseSize(t *testing.T) {
 		[]int{0},
 		[]int{0},
 		[]int{0},
-		map[int][]int{},
+		[][]int{},
 	}
 	m.increaseSize(5)
 	if !reflect.DeepEqual(m.Base, []int{0, -5, -1, -2, -3, -4}) {
@@ -147,7 +147,7 @@ func TestIncreaseSize(t *testing.T) {
 		[]int{-103, -1867},
 		[]int{0, 0},
 		[]int{},
-		map[int][]int{},
+		[][]int{},
 	}
 	m.increaseSize(5)
 	if !reflect.DeepEqual(m.Base, []int{-103, -1867, -6, -2, -3, -4, -5}) {
@@ -163,7 +163,7 @@ func TestNextFreeState(t *testing.T) {
 		[]int{5, 0, 0, -3},
 		[]int{-3, 0, 0, -1},
 		[]int{},
-		map[int][]int{},
+		[][]int{},
 	}
 	nextState := m.nextFreeState(3)
 	if nextState != -1 {
@@ -182,7 +182,7 @@ func TestOccupyState(t *testing.T) {
 		[]int{5, 0, 0, -3},
 		[]int{-3, 0, 0, -1},
 		[]int{},
-		map[int][]int{},
+		[][]int{},
 	}
 	m.increaseSize(5)
 	m.occupyState(3, 1)

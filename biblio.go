@@ -38,10 +38,10 @@ func (sslice *indexedStringSlice) Swap(i, j int) {
 
 // Matcher is the pattern matching state machine.
 type Matcher struct {
-	Base   []int         // base array in the double array trie
-	Check  []int         // check array in the double array trie
-	Fail   []int         // fail function
-	Output map[int][]int // output function
+	Base   []int   // base array in the double array trie
+	Check  []int   // check array in the double array trie
+	Fail   []int   // fail function
+	Output [][]int // output function
 }
 
 func (m *Matcher) String() string {
@@ -60,7 +60,7 @@ func CompileByteSlices(words [][]byte) *Matcher {
 	m.Base = make([]int, 2048)[:1]
 	m.Check = make([]int, 2048)[:1]
 	m.Fail = make([]int, 2048)[:1]
-	m.Output = map[int][]int{}
+	m.Output = make([][]int, 2048)[:1]
 
 	// Represents a node in the implicit trie of words
 	type trienode struct {
@@ -272,6 +272,7 @@ func (m *Matcher) increaseSize(dsize int) {
 	m.Base = append(m.Base, make([]int, dsize)...)
 	m.Check = append(m.Check, make([]int, dsize)...)
 	m.Fail = append(m.Fail, make([]int, dsize)...)
+	m.Output = append(m.Output, make([][]int, dsize)...)
 
 	lastFreeState := m.lastFreeState()
 	firstFreeState := m.firstFreeState()
