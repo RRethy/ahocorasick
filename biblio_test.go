@@ -11,6 +11,14 @@ import (
 	"testing"
 )
 
+func convert(got []*Match) []Match {
+	var converted []Match
+	for _, matchptr := range got {
+		converted = append(converted, *matchptr)
+	}
+	return converted
+}
+
 func TestFindAllByteSlice(t *testing.T) {
 	tests := []struct {
 		patterns [][]byte
@@ -56,12 +64,14 @@ func TestFindAllByteSlice(t *testing.T) {
 	for _, test := range tests {
 		matcher := CompileByteSlices(test.patterns)
 		got := matcher.FindAllByteSlice(test.text)
-		if !(len(got) == 0 && len(test.expected) == 0) && !reflect.DeepEqual(got, test.expected) {
+		gotConverted := convert(got)
+		if !(len(got) == 0 && len(test.expected) == 0) &&
+			!reflect.DeepEqual(gotConverted, test.expected) {
 			t.Errorf(`
         Text:     %s
 		Expected: %v
 		Got:      %v
-		`, test.text, test.expected, got)
+		`, test.text, test.expected, gotConverted)
 		}
 	}
 }

@@ -344,11 +344,11 @@ type Match struct {
 }
 
 // FindAllByteSlice finds all instances of the patterns in the text.
-func (m *Matcher) FindAllByteSlice(text []byte) (matches []Match) {
+func (m *Matcher) FindAllByteSlice(text []byte) (matches []*Match) {
 	state := 0
 	for i, b := range text {
 		offset := int(b)
-		for !m.hasEdge(state, offset) && state != 0 {
+		for state != 0 && !m.hasEdge(state, offset) {
 			state = m.Fail[state]
 		}
 
@@ -356,13 +356,13 @@ func (m *Matcher) FindAllByteSlice(text []byte) (matches []Match) {
 			state = m.Base[state] + offset
 		}
 		for _, word := range m.Output[state] {
-			matches = append(matches, Match{*word, i - len(*word) + 1})
+			matches = append(matches, &Match{*word, i - len(*word) + 1})
 		}
 	}
 	return
 }
 
 // FindAllString finds all instances of the patterns in the text.
-func (m *Matcher) FindAllString(text string) []Match {
+func (m *Matcher) FindAllString(text string) []*Match {
 	return m.FindAllByteSlice([]byte(text))
 }

@@ -1,3 +1,3 @@
-.PHONY: benchmark
-benchmark:
-	go test -bench=Benchmark
+# .PHONY: benchmark
+# benchmark:
+# 	go test -bench=Benchmark
