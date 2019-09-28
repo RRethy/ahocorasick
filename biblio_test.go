@@ -276,7 +276,7 @@ func benchBiblioCompileByteSlices(b *testing.B, every int) {
 }
 
 func benchBiblioFindAllByteSlice(b *testing.B, every int) {
-	patterns, err := readLines("./words.txt", 1000)
+	patterns, err := readLines("./words.txt", 100)
 	if err != nil {
 		b.Error(err)
 		return
@@ -344,7 +344,7 @@ func benchBobuCompile(b *testing.B, every int) {
 }
 
 func benchBobuFind(b *testing.B, every int) {
-	patterns, err := readLines("./words.txt", 1000)
+	patterns, err := readLines("./words.txt", 100)
 	if err != nil {
 		b.Error(err)
 		return
@@ -413,7 +413,7 @@ func benchAnknownCompile(b *testing.B, every int) {
 }
 
 func benchAnknownFind(b *testing.B, every int) {
-	patterns, err := readRunes("./words.txt", 1000)
+	patterns, err := readRunes("./words.txt", 100)
 	if err != nil {
 		b.Error(err)
 		return
