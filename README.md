@@ -1,6 +1,6 @@
 # Biblio
 
-:zap: Lightning fast implementation of the Aho-Corasick string matching algorithm using a Double Array Trie and a unique construction algorithm to construct the double array trie, fail function, and output function all at once without the need of creating an explicit linked-list trie. Since all work is done with `byte`s, full Unicode support is an intended side-effect.
+:zap: Lightning fast implementation of the Aho-Corasick string matching algorithm using a Double Array Trie. All characters from all languages are supported since matching is done on a byte level.
 
 ## Usage
 
@@ -41,7 +41,7 @@ $ go test -bench=Benchmark
 
 The two basic operations are the compilation of the state machine from an array of patterns (`Compile`), and the usage of this state machine to find each pattern in text (`FindAll`). Other implementations call these operations under different names.
 
-| Operation | Input Size | biblio | [BobuSumisu](https://github.com/BobuSumisu/aho-corasick) | [anknown](https://github.com/anknown/ahocorasick) |
+| Operation | Input Size | rrethy/biblio | [BobuSumisu/aho-corasick](https://github.com/BobuSumisu/aho-corasick) | [anknown/ahocorasick](https://github.com/anknown/ahocorasick) |
 | - | - | - | - | - |
 | `Compile` | 235886 patterns | **204 ms**    | 213 ms    | 1391 ms |
 | `Compile` | 23589 patterns  |  **44 ms**    |  50 ms    |  136 ms |
@@ -58,7 +58,13 @@ The two basic operations are the compilation of the state machine from an array 
 
 **NOTE**: `FindAll` time does **not** include the `Compile` time for the state machine.
 
-**NOTE**: Two implementations were intentionally omitted, [cloudflare/ahocorasick](https://github.com/cloudflare/ahocorasick) and [iohub/ahocorasick](https://github.com/iohub/ahocorasick). The *cloudflare* implementation was omitted due to incorrectness. However, it has a significantly slower (~10x) `Compile` time and a competitive `FindAll` time (partly due to it reporting far less results than actually exist). The *iohub* implementation was omitted since I was unable to get it working, it kept timing out. As well, it has an unnecessarily confusing API.
+### Other Implementations
+
+Two implementations were intentionally omitted, [cloudflare/ahocorasick](https://github.com/cloudflare/ahocorasick) and [iohub/ahocorasick](https://github.com/iohub/ahocorasick). There are existing benchmarks [here](https://github.com/BobuSumisu/aho-corasick) and [here](https://github.com/anknown/ahocorasick) which have these implementations in their benchmark comparisons.
+
+The *cloudflare* implementation was omitted due to incorrectness, it does not find all instances of the compiled patterns in the text. Even still, it has a significantly slower (~10x) `Compile` time and a competitive `FindAll` time (partly due to it reporting far less results than actually exist).
+
+The *iohub* implementation was omitted since I was unable to get it working as it seemed to time out during compilation. As well, it has an unnecessarily confusing API.
 
 ## Implementation Details
 
