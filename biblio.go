@@ -1,3 +1,5 @@
+// Package biblio implements the Aho-Corasick string matching algorithm for
+// efficiently finding all instances of multiple patterns in a text.
 package biblio
 
 import (
