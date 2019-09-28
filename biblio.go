@@ -189,10 +189,7 @@ func (m *Matcher) setFailState(state, parentState, offset int) {
 // This allows us to match substrings, commenting out this body would match
 // every word that is not a substring.
 func (m *Matcher) unionFailOutput(state, failState int) {
-	failWordsLen := len(m.Output[failState])
-	if failWordsLen > 0 {
-		m.Output[state] = append([]int{}, m.Output[failState]...)
-	}
+	m.Output[state] = append([]int{}, m.Output[failState]...)
 }
 
 // findBase finds a base value which has free states in the positions that
