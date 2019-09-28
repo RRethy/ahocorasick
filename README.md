@@ -2,6 +2,28 @@
 
 ## Usage
 
+**TODO**: Link to GoDoc
+
+```go
+m := CompileByteSlices([][]byte{
+  []byte("he"),
+  []byte("she"),
+  []byte("his"),
+  []byte("hers"),
+  []byte("she")},
+)
+m.FindAllByteSlice([]byte("ushers")) // => { "she" 1 }, { "he" 2}, { "hers" 2 }
+
+m := CompileStrings([]string{
+  "he",
+  "she",
+  "his",
+  "hers",
+  "she",
+)
+m.FindAllString("ushers") // => { "she" 1 }, { "he" 2}, { "hers" 2 }
+```
+
 ## Benchmarks
 
 *macOS Mojave version 10.14.6*

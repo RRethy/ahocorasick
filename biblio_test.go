@@ -20,6 +20,14 @@ func convert(got []*Match) []Match {
 }
 
 func TestFindAllByteSlice(t *testing.T) {
+	m := CompileByteSlices([][]byte{
+		[]byte("he"),
+		[]byte("she"),
+		[]byte("his"),
+		[]byte("hers"),
+		[]byte("she")},
+	)
+	m.FindAllByteSlice([]byte("ushers")) // => { "she" 1 }, { "he" 2}, { "hers" 2 }
 	tests := []struct {
 		patterns [][]byte
 		expected []Match
