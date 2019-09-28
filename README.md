@@ -1,5 +1,7 @@
 # Biblio
 
+:zap: Lightning fast implementation of the Aho-Corasick string matching algorithm using a Double Array Trie and a unique construction algorithm to construct the double array trie, fail function, and output function all at once without the need of creating an explicit linked-list trie. Since all work is done with `byte`s, full Unicode support is an intended side-effect.
+
 ## Usage
 
 **TODO**: Link to GoDoc
@@ -10,9 +12,9 @@ m := CompileByteSlices([][]byte{
   []byte("she"),
   []byte("his"),
   []byte("hers"),
-  []byte("she")},
-)
-m.FindAllByteSlice([]byte("ushers")) // => { "she" 1 }, { "he" 2}, { "hers" 2 }
+  []byte("she"),
+})
+m.FindAllByteSlice([]byte("ushers")) // => { "she" 1 }, { "he" 2 }, { "hers" 2 }
 
 m := CompileStrings([]string{
   "he",
@@ -21,7 +23,7 @@ m := CompileStrings([]string{
   "hers",
   "she",
 )
-m.FindAllString("ushers") // => { "she" 1 }, { "he" 2}, { "hers" 2 }
+m.FindAllString("ushers") // => { "she" 1 }, { "he" 2 }, { "hers" 2 }
 ```
 
 ## Benchmarks
@@ -42,7 +44,7 @@ The two basic operations are the compilation of the state machine from an array 
 | Operation | Input Size | biblio | [BobuSumisu](https://github.com/BobuSumisu/aho-corasick) | [anknown](https://github.com/anknown/ahocorasick) |
 | - | - | - | - | - |
 | `Compile` | 235886 patterns | **202 ms** | 243 ms | 1651 ms |
-| `Compile` | 23589 patterns  |  56 ms |  **54 ms** |  204 ms |
+| `Compile` | 23589 patterns  |  **54 ms** |  56 ms |  204 ms |
 | `Compile` | 2359 patterns   |   **9471 µs** |  11911 µs |   14307 µs |
 | `Compile` | 236 patterns    |   1115 µs |   1714 µs |    **1069 µs** |
 | `Compile` | 24 patterns     |    162 µs |    247 µs |     **123 µs** |
