@@ -43,16 +43,16 @@ The two basic operations are the compilation of the state machine from an array 
 
 | Operation | Input Size | biblio | [BobuSumisu](https://github.com/BobuSumisu/aho-corasick) | [anknown](https://github.com/anknown/ahocorasick) |
 | - | - | - | - | - |
-| `Compile` | 235886 patterns | **202 ms** | 243 ms | 1651 ms |
-| `Compile` | 23589 patterns  |  **54 ms** |  56 ms |  204 ms |
-| `Compile` | 2359 patterns   |   **9471 µs** |  11911 µs |   14307 µs |
-| `Compile` | 236 patterns    |   1115 µs |   1714 µs |    **1069 µs** |
-| `Compile` | 24 patterns     |    162 µs |    247 µs |     **123 µs** |
+| `Compile` | 235886 patterns | **204 ms**    | 213 ms    | 1391 ms |
+| `Compile` | 23589 patterns  |  **44 ms**    |  50 ms    |  136 ms |
+| `Compile` | 2359 patterns   |   **8500 µs** |  11441 µs |   10577 µs |
+| `Compile` | 236 patterns    |   1050 µs |   1514 µs |     **860 µs** |
+| `Compile` | 24 patterns     |    148 µs |    139 µs |      **82 µs** |
 | - | - | - | - | - |
-| `FindAll` | 3227439 bytes | **38 ms** | 51 ms | 209 ms |
-| `FindAll` | 318647 bytes  |  **3950 µs** |  4461 µs |  19219 µs |
-| `FindAll` | 31626 bytes   |   **381 µs** |   391 µs |   1332 µs |
-| `FindAll` | 3657 bytes    |    **34 µs** |    57 µs |    153 µs |
+| `FindAll` | 3227439 bytes | **35 ms**   | 37 ms   | 117 ms |
+| `FindAll` | 318647 bytes  |  **3543 µs** |  3767 µs |  11367 µs |
+| `FindAll` | 31626 bytes   |   **354 µs** |   373 µs |   1109 µs |
+| `FindAll` | 3657 bytes    |    **32 µs** |    40 µs |    128 µs |
 
 **NOTE**: `FindAll` uses a state machine compiled from 2359 patterns.
 
