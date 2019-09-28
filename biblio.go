@@ -50,8 +50,8 @@ func CompileByteSlices(words [][]byte) *Matcher {
 		depth      int
 		wordTuples []wordTuple
 	}
-	queue := make([]trienode, 256)[:1]
-	wordTuples := make([]wordTuple, len(words)) // TODO [:]
+	queue := make([]trienode, 2048)[:1]
+	wordTuples := make([]wordTuple, len(words))[:]
 	for i, word := range words {
 		wordTuples[i] = wordTuple{i, len(word)}
 	}
@@ -98,7 +98,7 @@ func CompileByteSlices(words [][]byte) *Matcher {
 			m.unionFailOutput(newState, m.Fail[newState])
 
 			// Add the child nodes to the queue to continue down the BFS
-			newnode := trienode{newState, node.depth + 1, []wordTuple{}}
+			newnode := trienode{newState, node.depth + 1, make([]wordTuple, len(wordTuples[edge]))[:0]}
 			for _, tuple := range wordTuples[edge] {
 				if newnode.depth < tuple.length {
 					newnode.wordTuples = append(newnode.wordTuples, tuple)
