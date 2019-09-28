@@ -4,7 +4,7 @@
 
 ## Usage
 
-**TODO**: Link to GoDoc
+[Documentation](https://godoc.org/github.com/RRethy/biblio)
 
 ```go
 m := CompileByteSlices([][]byte{
