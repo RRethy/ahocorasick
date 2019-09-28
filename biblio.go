@@ -2,7 +2,6 @@ package biblio
 
 import (
 	"fmt"
-	"sort"
 )
 
 const (
@@ -13,35 +12,13 @@ const (
 	LEAF = -1867
 )
 
-// This special string slice is used so we can sort a slice of strings on a
-// single index.
-// This is used so we can have an implicit trie of words which can be BFS'd
-// when constructing the double array trie.
-// For example:
-// slices: {"abc", "bca", "cab"}
-// index: 1
-// Sorted order => {"cab", "abc", "bca"}
-type indexedStringSlice struct {
-	slices [][]byte
-	index  int
-}
-
-func (sslice *indexedStringSlice) Len() int {
-	return len(sslice.slices)
-}
-func (sslice *indexedStringSlice) Less(i, j int) bool {
-	return sslice.slices[i][sslice.index] < sslice.slices[j][sslice.index]
-}
-func (sslice *indexedStringSlice) Swap(i, j int) {
-	sslice.slices[i], sslice.slices[j] = sslice.slices[j], sslice.slices[i]
-}
-
 // Matcher is the pattern matching state machine.
 type Matcher struct {
 	Base   []int   // base array in the double array trie
 	Check  []int   // check array in the double array trie
 	Fail   []int   // fail function
 	Output [][]int // output function
+
 }
 
 func (m *Matcher) String() string {
@@ -62,32 +39,44 @@ func CompileByteSlices(words [][]byte) *Matcher {
 	m.Fail = make([]int, 2048)[:1]
 	m.Output = make([][]int, 2048)[:1]
 
+	type wordTuple struct {
+		i      int
+		length int
+	}
+
 	// Represents a node in the implicit trie of words
 	type trienode struct {
-		state    int
-		suffixes indexedStringSlice
+		state      int
+		depth      int
+		wordTuples []wordTuple
 	}
 	queue := make([]trienode, 256)[:1]
-	queue[0] = trienode{0, indexedStringSlice{words, 0}}
+	wordTuples := make([]wordTuple, len(words)) // TODO [:]
+	for i, word := range words {
+		wordTuples[i] = wordTuple{i, len(word)}
+	}
+	queue[0] = trienode{0, 0, wordTuples}
 
 	for len(queue) > 0 {
 		node := queue[0]
 		queue = queue[1:]
-		depth := node.suffixes.index
 
-		if node.suffixes.Len() == 0 {
+		if len(node.wordTuples) == 0 {
 			m.Base[node.state] = LEAF
 			continue
 		}
 
-		// Get all the edges in lexicographical order for the call to
-		// Matcher.findBase
+		// TODO this is kinda confusing code
+		var wordTuples [256][]wordTuple
+		for _, tuple := range node.wordTuples {
+			edge := words[tuple.i][node.depth]
+			wordTuples[edge] = append(wordTuples[edge], tuple)
+		}
+
 		var edges []byte
-		sort.Sort(&node.suffixes)
-		for _, suffix := range node.suffixes.slices {
-			edge := suffix[depth]
-			if len(edges) == 0 || edges[len(edges)-1] != edge {
-				edges = append(edges, edge)
+		for edge, tuples := range wordTuples {
+			if len(tuples) > 0 {
+				edges = append(edges, byte(edge))
 			}
 		}
 
@@ -96,7 +85,6 @@ func CompileByteSlices(words [][]byte) *Matcher {
 		base := m.findBase(edges)
 		m.Base[node.state] = base
 
-		i := 0
 		for _, edge := range edges {
 			offset := int(edge)
 			newState := base + offset
@@ -104,20 +92,19 @@ func CompileByteSlices(words [][]byte) *Matcher {
 			m.occupyState(newState, node.state)
 
 			// level 0 and level 1 should fail to state 0
-			if depth > 0 {
+			if node.depth > 0 {
 				m.setFailState(newState, node.state, offset)
 			}
 			m.unionFailOutput(newState, m.Fail[newState])
 
 			// Add the child nodes to the queue to continue down the BFS
-			newnode := trienode{newState, indexedStringSlice{[][]byte{}, depth + 1}}
-			for i < len(node.suffixes.slices) && node.suffixes.slices[i][depth] == edge {
-				if len(node.suffixes.slices[i]) > depth+1 {
-					newnode.suffixes.slices = append(newnode.suffixes.slices, node.suffixes.slices[i])
+			newnode := trienode{newState, node.depth + 1, []wordTuple{}}
+			for _, tuple := range wordTuples[edge] {
+				if newnode.depth < tuple.length {
+					newnode.wordTuples = append(newnode.wordTuples, tuple)
 				} else {
-					m.Output[newState] = append(m.Output[newState], len(node.suffixes.slices[i]))
+					m.Output[newState] = append(m.Output[newState], tuple.length)
 				}
-				i++
 			}
 			queue = append(queue, newnode)
 		}
