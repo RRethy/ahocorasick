@@ -22,7 +22,6 @@ func convert(got []*Match) []Match {
 func TestFindAllByteSlice(t *testing.T) {
 	m := CompileByteSlices([][]byte{
 		[]byte("he"),
-		[]byte("she"),
 		[]byte("his"),
 		[]byte("hers"),
 		[]byte("she")},

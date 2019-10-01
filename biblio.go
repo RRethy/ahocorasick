@@ -4,6 +4,7 @@ package biblio
 
 import (
 	"fmt"
+	"sort"
 )
 
 const (
@@ -32,6 +33,32 @@ Output: %v
 `, m.Base, m.Check, m.Fail, m.Output)
 }
 
+type byteSliceSlice [][]byte
+
+func (bss byteSliceSlice) Len() int {
+	return len(bss)
+}
+func (bss byteSliceSlice) Less(i, j int) bool {
+	var minLen int
+	if len(bss[i]) < len(bss[j]) {
+		minLen = len(bss[i])
+	} else {
+		minLen = len(bss[j])
+	}
+
+	for index := 0; index < minLen; index++ {
+		if bss[i][index] < bss[j][index] {
+			return true
+		} else if bss[i][index] > bss[j][index] {
+			return false
+		}
+	}
+	return len(bss[i]) <= len(bss[j])
+}
+func (bss byteSliceSlice) Swap(i, j int) {
+	bss[i], bss[j] = bss[j], bss[i]
+}
+
 // CompileByteSlices compiles a Matcher from a slice of byte slices. This Matcher can be
 // used to find occurrences of each pattern in a text.
 func CompileByteSlices(words [][]byte) *Matcher {
@@ -40,45 +67,32 @@ func CompileByteSlices(words [][]byte) *Matcher {
 	m.Check = make([]int, 2048)[:1]
 	m.Fail = make([]int, 2048)[:1]
 	m.Output = make([][]int, 2048)[:1]
-
-	type wordTuple struct {
-		i      int
-		length int
-	}
+	sort.Sort(byteSliceSlice(words))
 
 	// Represents a node in the implicit trie of words
 	type trienode struct {
-		state      int
-		depth      int
-		wordTuples []wordTuple
+		state int
+		depth int
+		start int
+		end   int
 	}
 	queue := make([]trienode, 2048)[:1]
-	wordTuples := make([]wordTuple, len(words))[:]
-	for i, word := range words {
-		wordTuples[i] = wordTuple{i, len(word)}
-	}
-	queue[0] = trienode{0, 0, wordTuples}
+	queue[0] = trienode{0, 0, 0, len(words)}
 
 	for len(queue) > 0 {
 		node := queue[0]
 		queue = queue[1:]
 
-		if len(node.wordTuples) == 0 {
+		if node.end <= node.start {
 			m.Base[node.state] = LEAF
 			continue
 		}
 
-		// TODO this is kinda confusing code
-		var wordTuples [256][]wordTuple
-		for _, tuple := range node.wordTuples {
-			edge := words[tuple.i][node.depth]
-			wordTuples[edge] = append(wordTuples[edge], tuple)
-		}
-
 		var edges []byte
-		for edge, tuples := range wordTuples {
-			if len(tuples) > 0 {
-				edges = append(edges, byte(edge))
+		for i := node.start; i < node.end; i++ {
+			// TODO memoize
+			if len(edges) == 0 || edges[len(edges)-1] != words[i][node.depth] {
+				edges = append(edges, words[i][node.depth])
 			}
 		}
 
@@ -87,6 +101,7 @@ func CompileByteSlices(words [][]byte) *Matcher {
 		base := m.findBase(edges)
 		m.Base[node.state] = base
 
+		i := node.start
 		for _, edge := range edges {
 			offset := int(edge)
 			newState := base + offset
@@ -100,12 +115,17 @@ func CompileByteSlices(words [][]byte) *Matcher {
 			m.unionFailOutput(newState, m.Fail[newState])
 
 			// Add the child nodes to the queue to continue down the BFS
-			newnode := trienode{newState, node.depth + 1, make([]wordTuple, len(wordTuples[edge]))[:0]}
-			for _, tuple := range wordTuples[edge] {
-				if newnode.depth < tuple.length {
-					newnode.wordTuples = append(newnode.wordTuples, tuple)
-				} else {
-					m.Output[newState] = append(m.Output[newState], tuple.length)
+			newnode := trienode{newState, node.depth + 1, i, i}
+			for {
+				if newnode.depth >= len(words[i]) {
+					m.Output[newState] = append(m.Output[newState], len(words[i])) // TODO bad
+					newnode.start++
+				}
+				newnode.end++
+
+				i++
+				if i >= node.end || words[i][node.depth] != edge {
+					break
 				}
 			}
 			queue = append(queue, newnode)
