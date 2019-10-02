@@ -3,6 +3,7 @@
 package biblio
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 )
@@ -35,29 +36,9 @@ Output: %v
 
 type byteSliceSlice [][]byte
 
-func (bss byteSliceSlice) Len() int {
-	return len(bss)
-}
-func (bss byteSliceSlice) Less(i, j int) bool {
-	var minLen int
-	if len(bss[i]) < len(bss[j]) {
-		minLen = len(bss[i])
-	} else {
-		minLen = len(bss[j])
-	}
-
-	for index := 0; index < minLen; index++ {
-		if bss[i][index] < bss[j][index] {
-			return true
-		} else if bss[i][index] > bss[j][index] {
-			return false
-		}
-	}
-	return len(bss[i]) <= len(bss[j])
-}
-func (bss byteSliceSlice) Swap(i, j int) {
-	bss[i], bss[j] = bss[j], bss[i]
-}
+func (bss byteSliceSlice) Len() int           { return len(bss) }
+func (bss byteSliceSlice) Less(i, j int) bool { return bytes.Compare(bss[i], bss[j]) < 1 }
+func (bss byteSliceSlice) Swap(i, j int)      { bss[i], bss[j] = bss[j], bss[i] }
 
 // CompileByteSlices compiles a Matcher from a slice of byte slices. This Matcher can be
 // used to find occurrences of each pattern in a text.
@@ -90,7 +71,6 @@ func CompileByteSlices(words [][]byte) *Matcher {
 
 		var edges []byte
 		for i := node.start; i < node.end; i++ {
-			// TODO memoize
 			if len(edges) == 0 || edges[len(edges)-1] != words[i][node.depth] {
 				edges = append(edges, words[i][node.depth])
 			}
