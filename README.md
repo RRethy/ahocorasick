@@ -1,6 +1,6 @@
 # Biblio
 
-:zap: Lightning fast implementation of the Aho-Corasick string matching algorithm using a Double Array Trie. All characters from all languages are supported since matching is done on a byte level.
+:zap: The fastest Golang implementation of the Aho-Corasick string matching algorithm, bar none.
 
 ## Usage
 
@@ -62,13 +62,13 @@ The two basic operations are the compilation of the state machine from an array 
 
 Two implementations were intentionally omitted, [cloudflare/ahocorasick](https://github.com/cloudflare/ahocorasick) and [iohub/ahocorasick](https://github.com/iohub/ahocorasick). There are existing benchmarks [here](https://github.com/BobuSumisu/aho-corasick) and [here](https://github.com/anknown/ahocorasick) which have these implementations in their benchmark comparisons.
 
-The *cloudflare* implementation was omitted due to incorrectness, it does not find all instances of the compiled patterns in the text. Even still, it has a significantly slower (~10x) `Compile` time and a competitive `FindAll` time (partly due to it reporting far less results than actually exist).
+The *cloudflare* implementation was omitted due to incorrectness, it does not find all instances of the compiled patterns in the text. Even still, it has a significantly slower (~50x) `Compile` time and a slightly slower `FindAll` time (partly due to it reporting far less results than actually exist).
 
 The *iohub* implementation was omitted since I was unable to get it working as it seemed to time out during compilation. As well, it has an unnecessarily confusing API.
 
 ## Implementation Details
 
-**TODO**: Probably going to write a blog post. There are a lot of suddle things I did to improve the construction time of the double array trie.
+**TODO**
 
 ## License
 
