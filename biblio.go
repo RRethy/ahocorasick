@@ -48,6 +48,7 @@ func CompileByteSlices(words [][]byte) *Matcher {
 	m.Check = make([]int, 2048)[:1]
 	m.Fail = make([]int, 2048)[:1]
 	m.Output = make([][]int, 2048)[:1]
+
 	sort.Sort(byteSliceSlice(words))
 
 	// Represents a node in the implicit trie of words
