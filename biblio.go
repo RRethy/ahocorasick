@@ -99,7 +99,7 @@ func CompileByteSlices(words [][]byte) *Matcher {
 			newnode := trienode{newState, node.depth + 1, i, i}
 			for {
 				if newnode.depth >= len(words[i]) {
-					m.Output[newState] = append(m.Output[newState], len(words[i])) // TODO bad
+					m.Output[newState] = append(m.Output[newState], len(words[i]))
 					newnode.start++
 				}
 				newnode.end++
