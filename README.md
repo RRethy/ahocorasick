@@ -70,7 +70,7 @@ The two basic operations are the compilation of the state machine from an array 
 
 [2] J.I. Aoe, "An Efficient Digital Search Algorithm by Using a Doble-Array Structure," IEEE Transactions on Software Engineering, vol. 15, no. 9, pp. 1066-1077, September 1989.
 
-[4] J.I. Aoe, K. Morimoto, T. Sato, "An Efficient Implementation of Trie Stuctures," Software - Practice and Experience, vol. 22, no.9, pp. 695-721, September 1992.
+[3] J.I. Aoe, K. Morimoto, T. Sato, "An Efficient Implementation of Trie Stuctures," Software - Practice and Experience, vol. 22, no.9, pp. 695-721, September 1992.
 
 ## License
 

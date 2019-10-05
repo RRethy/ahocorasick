@@ -218,7 +218,10 @@ func readLines(fname string, every int) ([][]byte, error) {
 	i := 0
 	for scanner.Scan() {
 		if i%every == 0 {
-			pattens = append(pattens, scanner.Bytes())
+			bs := scanner.Bytes()
+			if len(bs) > 0 {
+				pattens = append(pattens, bs)
+			}
 		}
 		i++
 	}
