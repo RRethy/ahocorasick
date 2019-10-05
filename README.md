@@ -1,6 +1,6 @@
 # Biblio
 
-:zap: The fastest Golang implementation of the Aho-Corasick string matching algorithm, bar none.
+The fastest Golang implementation of the Aho-Corasick algorithm for string-searching.
 
 ## Usage
 
@@ -43,6 +43,8 @@ The two basic operations are the compilation of the state machine from an array 
 
 | Operation | Input Size | rrethy/biblio | [BobuSumisu/aho-corasick](https://github.com/BobuSumisu/aho-corasick) | [anknown/ahocorasick](https://github.com/anknown/ahocorasick) |
 | - | - | - | - | - |
+| - | - | Double-Array Trie | LinkedList Trie | Double-Array Trie |
+| - | - | - | - | - |
 | `Compile` | 235886 patterns | **133 ms** | 214 ms | 1408 ms |
 | `Compile` | 23589 patterns  | **20 ms** | 50 ms  | 137 ms |
 | `Compile` | 2359 patterns   | **3320 µs** | 11026 µs | 10506 µs |
@@ -58,17 +60,17 @@ The two basic operations are the compilation of the state machine from an array 
 
 **NOTE**: `FindAll` time does **not** include the `Compile` time for the state machine.
 
-### Other Implementations
-
-Two implementations were intentionally omitted, [cloudflare/ahocorasick](https://github.com/cloudflare/ahocorasick) and [iohub/ahocorasick](https://github.com/iohub/ahocorasick). There are existing benchmarks [here](https://github.com/BobuSumisu/aho-corasick) and [here](https://github.com/anknown/ahocorasick) which have these implementations in their benchmark comparisons.
-
-The *cloudflare* implementation was omitted due to incorrectness, it does not find all instances of the compiled patterns in the text. Even still, it has a significantly slower (~50x) `Compile` time and a slightly slower `FindAll` time (partly due to it reporting far less results than actually exist).
-
-The *iohub* implementation was omitted since I was unable to get it working as it seemed to time out during compilation. As well, it has an unnecessarily confusing API.
-
 ## Implementation Details
 
 **TODO**
+
+### Works Cited
+
+[1] A. V. Aho, M. J. Corasick, "Efficient String Matching: An Aid to Bibliographic Search," Communications of the ACM, vol. 18, no. 6, pp. 333-340, June 1975.
+
+[2] J.I. Aoe, "An Efficient Digital Search Algorithm by Using a Doble-Array Structure," IEEE Transactions on Software Engineering, vol. 15, no. 9, pp. 1066-1077, September 1989.
+
+[4] J.I. Aoe, K. Morimoto, T. Sato, "An Efficient Implementation of Trie Stuctures," Software - Practice and Experience, vol. 22, no.9, pp. 695-721, September 1992.
 
 ## License
 
