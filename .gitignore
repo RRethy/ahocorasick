@@ -2,3 +2,5 @@ biblio.test
 *.pprof
 *.pdf
 sandbox/
+cmd/cmd
+main
