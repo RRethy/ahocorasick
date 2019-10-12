@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/rrethy/biblio"
-	"io/ioutil"
 	"os"
 )
 
@@ -31,16 +30,27 @@ func main() {
 	var patterns [][]byte
 	scanner := bufio.NewScanner(patsFile)
 	for scanner.Scan() {
-		patterns = append(patterns, scanner.Bytes())
+		patterns = append(patterns, []byte(scanner.Text()))
 	}
+	m := biblio.CompileByteSlices(patterns)
 
-	fileContents, err := ioutil.ReadFile(*fname)
+	linesFile, err := os.Open(*fname)
+	defer linesFile.Close()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 
-	m := biblio.CompileByteSlices(patterns)
-	matches := m.FindAllByteSlice(fileContents)
-	fmt.Println(len(matches))
+	scanner = bufio.NewScanner(linesFile)
+	matchedLines := 0
+	for scanner.Scan() {
+		matches := m.FindAllByteSlice(scanner.Bytes())
+		if len(matches) > 0 {
+			// for _, match := range matches {
+			// fmt.Println(match)
+			// }
+			matchedLines++
+		}
+	}
+	fmt.Println(matchedLines)
 }
