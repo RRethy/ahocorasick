@@ -4,3 +4,4 @@ biblio.test
 sandbox/
 cmd/cmd
 main
+biblio_grep_rg_benchmarks.*
