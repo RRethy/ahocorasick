@@ -5,3 +5,4 @@ sandbox/
 cmd/cmd
 main
 biblio_grep_rg_benchmarks.*
+~$biblio_grep_rg_benchmarks.xlsx
