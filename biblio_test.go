@@ -20,13 +20,13 @@ func convert(got []*Match) []Match {
 }
 
 func TestFindAllByteSlice(t *testing.T) {
-	m := CompileByteSlices([][]byte{
+	m := compile([][]byte{
 		[]byte("he"),
 		[]byte("his"),
 		[]byte("hers"),
 		[]byte("she")},
 	)
-	m.FindAllByteSlice([]byte("ushers")) // => { "she" 1 }, { "he" 2}, { "hers" 2 }
+	m.findAll([]byte("ushers")) // => { "she" 1 }, { "he" 2}, { "hers" 2 }
 	tests := []struct {
 		patterns [][]byte
 		expected []Match
@@ -69,8 +69,8 @@ func TestFindAllByteSlice(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		matcher := CompileByteSlices(test.patterns)
-		got := matcher.FindAllByteSlice(test.text)
+		matcher := compile(test.patterns)
+		got := matcher.findAll(test.text)
 		gotConverted := convert(got)
 		if !(len(got) == 0 && len(test.expected) == 0) &&
 			!reflect.DeepEqual(gotConverted, test.expected) {
@@ -281,7 +281,7 @@ func benchBiblioCompileByteSlices(b *testing.B, every int) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		CompileByteSlices(patterns)
+		compile(patterns)
 	}
 }
 
@@ -298,9 +298,9 @@ func benchBiblioFindAllByteSlice(b *testing.B, every int) {
 		return
 	}
 
-	m := CompileByteSlices(patterns)
+	m := compile(patterns)
 	for i := 0; i < b.N; i++ {
-		m.FindAllByteSlice(text)
+		m.findAll(text)
 	}
 }
 

@@ -40,9 +40,7 @@ func (bss byteSliceSlice) Len() int           { return len(bss) }
 func (bss byteSliceSlice) Less(i, j int) bool { return bytes.Compare(bss[i], bss[j]) < 1 }
 func (bss byteSliceSlice) Swap(i, j int)      { bss[i], bss[j] = bss[j], bss[i] }
 
-// CompileByteSlices compiles a Matcher from a slice of byte slices. This Matcher can be
-// used to find occurrences of each pattern in a text.
-func CompileByteSlices(words [][]byte) *Matcher {
+func compile(words [][]byte) *Matcher {
 	m := new(Matcher)
 	m.Base = make([]int, 2048)[:1]
 	m.Check = make([]int, 2048)[:1]
@@ -116,6 +114,12 @@ func CompileByteSlices(words [][]byte) *Matcher {
 	return m
 }
 
+// CompileByteSlices compiles a Matcher from a slice of byte slices. This Matcher can be
+// used to find occurrences of each pattern in a text.
+func CompileByteSlices(words [][]byte) *Matcher {
+	return compile(words)
+}
+
 // CompileStrings compiles a Matcher from a slice of strings. This Matcher can
 // be used to find occurrences of each pattern in a text.
 func CompileStrings(words []string) *Matcher {
@@ -123,7 +127,7 @@ func CompileStrings(words []string) *Matcher {
 	for _, word := range words {
 		wordByteSlices = append(wordByteSlices, []byte(word))
 	}
-	return CompileByteSlices(wordByteSlices)
+	return compile(wordByteSlices)
 }
 
 // occupyState will correctly occupy state so it maintains the
@@ -328,8 +332,8 @@ type Match struct {
 	Index int    // the start index of the match
 }
 
-// FindAllByteSlice finds all instances of the patterns in the text.
-func (m *Matcher) FindAllByteSlice(text []byte) (matches []*Match) {
+func (m *Matcher) findAll(text []byte) []*Match {
+	var matches []*Match
 	state := 0
 	for i, b := range text {
 		offset := int(b)
@@ -344,7 +348,12 @@ func (m *Matcher) FindAllByteSlice(text []byte) (matches []*Match) {
 			matches = append(matches, &Match{text[i-wordlen+1 : i+1], i - wordlen + 1})
 		}
 	}
-	return
+	return matches
+}
+
+// FindAllByteSlice finds all instances of the patterns in the text.
+func (m *Matcher) FindAllByteSlice(text []byte) (matches []*Match) {
+	return m.findAll(text)
 }
 
 // FindAllString finds all instances of the patterns in the text.
