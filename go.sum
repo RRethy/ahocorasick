@@ -1,0 +1,6 @@
+github.com/BobuSumisu/aho-corasick v0.0.0-20190714010706-87defef828b4 h1:QtiAfn7n2K1ZYdqSXdI5wQIffCz+qNrC9xBKZuoDUCc=
+github.com/BobuSumisu/aho-corasick v0.0.0-20190714010706-87defef828b4/go.mod h1:Dxyzfcjf0gjM2unxeTb4VCdCb3DOdY2j6lfU9ERnDco=
+github.com/anknown/ahocorasick v0.0.0-20190904063843-d75dbd5169c0 h1:onfun1RA+KcxaMk1lfrRnwCd1UUuOjJM/lri5eM1qMs=
+github.com/anknown/ahocorasick v0.0.0-20190904063843-d75dbd5169c0/go.mod h1:4yg+jNTYlDEzBjhGS96v+zjyA3lfXlFd5CiTLIkPBLI=
+github.com/anknown/darts v0.0.0-20151216065714-83ff685239e6 h1:HblK3eJHq54yET63qPCTJnks3loDse5xRmmqHgHzwoI=
+github.com/anknown/darts v0.0.0-20151216065714-83ff685239e6/go.mod h1:pbiaLIeYLUbgMY1kwEAdwO6UKD5ZNwdPGQlwokS9fe8=
