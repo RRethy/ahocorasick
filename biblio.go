@@ -22,7 +22,6 @@ type Matcher struct {
 	Check  []int   // check array in the double array trie
 	Fail   []int   // fail function
 	Output [][]int // output function
-
 }
 
 func (m *Matcher) String() string {
