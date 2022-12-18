@@ -9,11 +9,11 @@ import (
 )
 
 const (
-	// LEAF represents a leaf on the trie
+	// leaf represents a leaf on the trie
 	// This must be <255 since the offsets used are in [0,255]
 	// This should only appear in the Base array since the Check array uses
 	// negative values to represent free states.
-	LEAF = -1867
+	leaf = -1867
 )
 
 // Matcher is the pattern matching state machine.
@@ -63,7 +63,7 @@ func compile(words [][]byte) *Matcher {
 		queue = queue[1:]
 
 		if node.end <= node.start {
-			m.base[node.state] = LEAF
+			m.base[node.state] = leaf
 			continue
 		}
 
@@ -157,7 +157,7 @@ func (m *Matcher) occupyState(state, parentState int) {
 		}
 	}
 	m.check[state] = parentState
-	m.base[state] = LEAF
+	m.base[state] = leaf
 }
 
 // setFailState sets the output of the fail function for input state. It will
@@ -192,7 +192,7 @@ func (m *Matcher) unionFailOutput(state, failState int) {
 // The extension will maintain the bidirectional link of free states.
 func (m *Matcher) findBase(edges []byte) int {
 	if len(edges) == 0 {
-		return LEAF
+		return leaf
 	}
 
 	min := int(edges[0])
