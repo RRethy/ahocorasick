@@ -1,12 +1,6 @@
 package biblio
 
 import (
-	"bufio"
-	"bytes"
-	bobu "github.com/BobuSumisu/aho-corasick"
-	anknown "github.com/anknown/ahocorasick"
-	"io"
-	"os"
 	"reflect"
 	"testing"
 )
@@ -91,27 +85,27 @@ func TestIncreaseSize(t *testing.T) {
 		[][]int{},
 	}
 	m.increaseSize(1)
-	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -3}) {
-		t.Errorf("Got: %v\n", m.Base)
+	if !reflect.DeepEqual(m.base, []int{5, 0, 0, -3}) {
+		t.Errorf("Got: %v\n", m.base)
 	}
-	if !reflect.DeepEqual(m.Check, []int{-3, 0, 0, -1}) {
-		t.Errorf("Got: %v\n", m.Check)
-	}
-
-	m.increaseSize(1)
-	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -4, -3}) {
-		t.Errorf("Got: %v\n", m.Base)
-	}
-	if !reflect.DeepEqual(m.Check, []int{-3, 0, 0, -4, -1}) {
-		t.Errorf("Got: %v\n", m.Check)
+	if !reflect.DeepEqual(m.check, []int{-3, 0, 0, -1}) {
+		t.Errorf("Got: %v\n", m.check)
 	}
 
 	m.increaseSize(1)
-	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -5, -3, -4}) {
-		t.Errorf("Got: %v\n", m.Base)
+	if !reflect.DeepEqual(m.base, []int{5, 0, 0, -4, -3}) {
+		t.Errorf("Got: %v\n", m.base)
 	}
-	if !reflect.DeepEqual(m.Check, []int{-3, 0, 0, -4, -5, -1}) {
-		t.Errorf("Got: %v\n", m.Check)
+	if !reflect.DeepEqual(m.check, []int{-3, 0, 0, -4, -1}) {
+		t.Errorf("Got: %v\n", m.check)
+	}
+
+	m.increaseSize(1)
+	if !reflect.DeepEqual(m.base, []int{5, 0, 0, -5, -3, -4}) {
+		t.Errorf("Got: %v\n", m.base)
+	}
+	if !reflect.DeepEqual(m.check, []int{-3, 0, 0, -4, -5, -1}) {
+		t.Errorf("Got: %v\n", m.check)
 	}
 
 	m = &Matcher{
@@ -121,19 +115,19 @@ func TestIncreaseSize(t *testing.T) {
 		[][]int{},
 	}
 	m.increaseSize(3)
-	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -5, -3, -4}) {
-		t.Errorf("Got: %v\n", m.Base)
+	if !reflect.DeepEqual(m.base, []int{5, 0, 0, -5, -3, -4}) {
+		t.Errorf("Got: %v\n", m.base)
 	}
-	if !reflect.DeepEqual(m.Check, []int{-3, 0, 0, -4, -5, -1}) {
-		t.Errorf("Got: %v\n", m.Check)
+	if !reflect.DeepEqual(m.check, []int{-3, 0, 0, -4, -5, -1}) {
+		t.Errorf("Got: %v\n", m.check)
 	}
 
 	m.increaseSize(3)
-	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -8, -3, -4, -5, -6, -7}) {
-		t.Errorf("Got: %v\n", m.Base)
+	if !reflect.DeepEqual(m.base, []int{5, 0, 0, -8, -3, -4, -5, -6, -7}) {
+		t.Errorf("Got: %v\n", m.base)
 	}
-	if !reflect.DeepEqual(m.Check, []int{-3, 0, 0, -4, -5, -6, -7, -8, -1}) {
-		t.Errorf("Got: %v\n", m.Check)
+	if !reflect.DeepEqual(m.check, []int{-3, 0, 0, -4, -5, -6, -7, -8, -1}) {
+		t.Errorf("Got: %v\n", m.check)
 	}
 
 	m = &Matcher{
@@ -143,11 +137,11 @@ func TestIncreaseSize(t *testing.T) {
 		[][]int{},
 	}
 	m.increaseSize(5)
-	if !reflect.DeepEqual(m.Base, []int{0, -5, -1, -2, -3, -4}) {
-		t.Errorf("Got: %v\n", m.Base)
+	if !reflect.DeepEqual(m.base, []int{0, -5, -1, -2, -3, -4}) {
+		t.Errorf("Got: %v\n", m.base)
 	}
-	if !reflect.DeepEqual(m.Check, []int{-1, -2, -3, -4, -5, -1}) {
-		t.Errorf("Got: %v\n", m.Check)
+	if !reflect.DeepEqual(m.check, []int{-1, -2, -3, -4, -5, -1}) {
+		t.Errorf("Got: %v\n", m.check)
 	}
 
 	m = &Matcher{
@@ -157,11 +151,11 @@ func TestIncreaseSize(t *testing.T) {
 		[][]int{},
 	}
 	m.increaseSize(5)
-	if !reflect.DeepEqual(m.Base, []int{-103, -1867, -6, -2, -3, -4, -5}) {
-		t.Errorf("Got: %v\n", m.Base)
+	if !reflect.DeepEqual(m.base, []int{-103, -1867, -6, -2, -3, -4, -5}) {
+		t.Errorf("Got: %v\n", m.base)
 	}
-	if !reflect.DeepEqual(m.Check, []int{-2, 0, -3, -4, -5, -6, -1}) {
-		t.Errorf("Got: %v\n", m.Check)
+	if !reflect.DeepEqual(m.check, []int{-2, 0, -3, -4, -5, -6, -1}) {
+		t.Errorf("Got: %v\n", m.check)
 	}
 }
 
@@ -198,283 +192,10 @@ func TestOccupyState(t *testing.T) {
 	m.occupyState(6, 1)
 	m.occupyState(5, 1)
 	m.occupyState(7, 1)
-	if !reflect.DeepEqual(m.Base, []int{5, 0, 0, -1867, -1867, -1867, -1867, -1867, -1867}) {
-		t.Errorf("Got: %v\n", m.Base)
+	if !reflect.DeepEqual(m.base, []int{5, 0, 0, -1867, -1867, -1867, -1867, -1867, -1867}) {
+		t.Errorf("Got: %v\n", m.base)
 	}
-	if !reflect.DeepEqual(m.Check, []int{0, 0, 0, 1, 1, 1, 1, 1, 1}) {
-		t.Errorf("Got: %v\n", m.Check)
+	if !reflect.DeepEqual(m.check, []int{0, 0, 0, 1, 1, 1, 1, 1, 1}) {
+		t.Errorf("Got: %v\n", m.check)
 	}
-}
-
-func readLines(fname string, every int) ([][]byte, error) {
-	file, err := os.Open(fname)
-	defer file.Close()
-	var pattens [][]byte
-	if err != nil {
-		return pattens, err
-	}
-
-	scanner := bufio.NewScanner(file)
-	i := 0
-	for scanner.Scan() {
-		if i%every == 0 {
-			text := scanner.Text()
-			if len(text) > 0 {
-				pattens = append(pattens, []byte(text))
-			}
-		}
-		i++
-	}
-	return pattens, nil
-}
-
-func readBytes(fname string, every int) ([]byte, error) {
-	file, err := os.Open(fname)
-	defer file.Close()
-	var bytes []byte
-	if err != nil {
-		return bytes, err
-	}
-
-	scanner := bufio.NewScanner(file)
-	i := 0
-	for scanner.Scan() {
-		if i%every == 0 {
-			bytes = append(bytes, []byte(scanner.Text())...)
-		}
-		i++
-	}
-	return bytes, nil
-}
-
-func readRunes(filename string, every int) ([][]rune, error) {
-	dict := [][]rune{}
-
-	f, err := os.OpenFile(filename, os.O_RDONLY, 0660)
-	if err != nil {
-		return nil, err
-	}
-
-	r := bufio.NewReader(f)
-	i := 0
-	for {
-		l, err := r.ReadBytes('\n')
-		if err != nil || err == io.EOF {
-			break
-		}
-		l = bytes.TrimSpace(l)
-
-		if i%every == 0 {
-			dict = append(dict, bytes.Runes(l))
-		}
-		i++
-	}
-
-	return dict, nil
-}
-
-func benchBiblioCompileByteSlices(b *testing.B, every int) {
-	patterns, err := readLines("./words.txt", every)
-	if err != nil {
-		b.Error(err)
-		return
-	}
-
-	for i := 0; i < b.N; i++ {
-		compile(patterns)
-	}
-}
-
-func benchBiblioFindAllByteSlice(b *testing.B, every int) {
-	patterns, err := readLines("./words.txt", 100)
-	if err != nil {
-		b.Error(err)
-		return
-	}
-
-	text, err := readBytes("./war-and-peace.txt", every)
-	if err != nil {
-		b.Error(err)
-		return
-	}
-
-	m := compile(patterns)
-	for i := 0; i < b.N; i++ {
-		m.findAll(text)
-	}
-}
-
-func BenchmarkBiblio1ModCompileByteSlices(b *testing.B) {
-	benchBiblioCompileByteSlices(b, 1)
-}
-
-func BenchmarkBiblio10ModCompileByteSlices(b *testing.B) {
-	benchBiblioCompileByteSlices(b, 10)
-}
-
-func BenchmarkBiblio100ModCompileByteSlices(b *testing.B) {
-	benchBiblioCompileByteSlices(b, 100)
-}
-
-func BenchmarkBiblio1000ModCompileByteSlices(b *testing.B) {
-	benchBiblioCompileByteSlices(b, 1000)
-}
-
-func BenchmarkBiblio10000ModCompileByteSlices(b *testing.B) {
-	benchBiblioCompileByteSlices(b, 10000)
-}
-
-func BenchmarkBiblio1ModFindAllByteSlice(b *testing.B) {
-	benchBiblioFindAllByteSlice(b, 1)
-}
-
-func BenchmarkBiblio10ModFindAllByteSlice(b *testing.B) {
-	benchBiblioFindAllByteSlice(b, 10)
-}
-
-func BenchmarkBiblio100ModFindAllByteSlice(b *testing.B) {
-	benchBiblioFindAllByteSlice(b, 100)
-}
-
-func BenchmarkBiblio1000ModFindAllByteSlice(b *testing.B) {
-	benchBiblioFindAllByteSlice(b, 1000)
-}
-
-// BOBU
-func benchBobuCompile(b *testing.B, every int) {
-	patterns, err := readLines("./words.txt", every)
-	if err != nil {
-		b.Error(err)
-		return
-	}
-
-	for i := 0; i < b.N; i++ {
-		bobu.NewTrieBuilder().AddPatterns(patterns).Build()
-	}
-}
-
-func benchBobuFind(b *testing.B, every int) {
-	patterns, err := readLines("./words.txt", 100)
-	if err != nil {
-		b.Error(err)
-		return
-	}
-
-	text, err := readBytes("./war-and-peace.txt", every)
-	if err != nil {
-		b.Error(err)
-		return
-	}
-
-	t := bobu.NewTrieBuilder().AddPatterns(patterns).Build()
-	for i := 0; i < b.N; i++ {
-		t.Match(text)
-	}
-}
-
-func BenchmarkBobu1ModCompile(b *testing.B) {
-	benchBobuCompile(b, 1)
-}
-
-func BenchmarkBobu10ModCompile(b *testing.B) {
-	benchBobuCompile(b, 10)
-}
-
-func BenchmarkBobu100ModCompile(b *testing.B) {
-	benchBobuCompile(b, 100)
-}
-
-func BenchmarkBobu1000ModCompile(b *testing.B) {
-	benchBobuCompile(b, 1000)
-}
-
-func BenchmarkBobu10000ModCompile(b *testing.B) {
-	benchBobuCompile(b, 10000)
-}
-
-func BenchmarkBobu1ModFind(b *testing.B) {
-	benchBobuFind(b, 1)
-}
-
-func BenchmarkBobu10ModFind(b *testing.B) {
-	benchBobuFind(b, 10)
-}
-
-func BenchmarkBobu100ModFind(b *testing.B) {
-	benchBobuFind(b, 100)
-}
-
-func BenchmarkBobu1000ModFind(b *testing.B) {
-	benchBobuFind(b, 1000)
-}
-
-// ANKNOWN
-func benchAnknownCompile(b *testing.B, every int) {
-	patterns, err := readRunes("./words.txt", every)
-	if err != nil {
-		b.Error(err)
-		return
-	}
-
-	for i := 0; i < b.N; i++ {
-		m := new(anknown.Machine)
-		m.Build(patterns)
-	}
-}
-
-func benchAnknownFind(b *testing.B, every int) {
-	patterns, err := readRunes("./words.txt", 100)
-	if err != nil {
-		b.Error(err)
-		return
-	}
-	m := new(anknown.Machine)
-	m.Build(patterns)
-
-	text, err := readBytes("./war-and-peace.txt", every)
-	if err != nil {
-		b.Error(err)
-		return
-	}
-	textRunes := bytes.Runes(text)
-
-	for i := 0; i < b.N; i++ {
-		m.MultiPatternSearch(textRunes, false)
-	}
-}
-
-func BenchmarkAnknown1ModCompile(b *testing.B) {
-	benchAnknownCompile(b, 1)
-}
-
-func BenchmarkAnknown10ModCompile(b *testing.B) {
-	benchAnknownCompile(b, 10)
-}
-
-func BenchmarkAnknown100ModCompile(b *testing.B) {
-	benchAnknownCompile(b, 100)
-}
-
-func BenchmarkAnknown1000ModCompile(b *testing.B) {
-	benchAnknownCompile(b, 1000)
-}
-
-func BenchmarkAnknown10000ModCompile(b *testing.B) {
-	benchAnknownCompile(b, 10000)
-}
-
-func BenchmarkAnknown1ModFind(b *testing.B) {
-	benchAnknownFind(b, 1)
-}
-
-func BenchmarkAnknown10ModFind(b *testing.B) {
-	benchAnknownFind(b, 10)
-}
-
-func BenchmarkAnknown100ModFind(b *testing.B) {
-	benchAnknownFind(b, 100)
-}
-
-func BenchmarkAnknown1000ModFind(b *testing.B) {
-	benchAnknownFind(b, 1000)
 }

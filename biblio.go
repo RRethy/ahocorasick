@@ -18,10 +18,10 @@ const (
 
 // Matcher is the pattern matching state machine.
 type Matcher struct {
-	Base   []int   // base array in the double array trie
-	Check  []int   // check array in the double array trie
-	Fail   []int   // fail function
-	Output [][]int // output function
+	base   []int   // base array in the double array trie
+	check  []int   // check array in the double array trie
+	fail   []int   // fail function
+	output [][]int // output function
 }
 
 func (m *Matcher) String() string {
@@ -30,7 +30,7 @@ Base:   %v
 Check:  %v
 Fail:   %v
 Output: %v
-`, m.Base, m.Check, m.Fail, m.Output)
+`, m.base, m.check, m.fail, m.output)
 }
 
 type byteSliceSlice [][]byte
@@ -41,10 +41,10 @@ func (bss byteSliceSlice) Swap(i, j int)      { bss[i], bss[j] = bss[j], bss[i] 
 
 func compile(words [][]byte) *Matcher {
 	m := new(Matcher)
-	m.Base = make([]int, 2048)[:1]
-	m.Check = make([]int, 2048)[:1]
-	m.Fail = make([]int, 2048)[:1]
-	m.Output = make([][]int, 2048)[:1]
+	m.base = make([]int, 2048)[:1]
+	m.check = make([]int, 2048)[:1]
+	m.fail = make([]int, 2048)[:1]
+	m.output = make([][]int, 2048)[:1]
 
 	sort.Sort(byteSliceSlice(words))
 
@@ -63,7 +63,7 @@ func compile(words [][]byte) *Matcher {
 		queue = queue[1:]
 
 		if node.end <= node.start {
-			m.Base[node.state] = LEAF
+			m.base[node.state] = LEAF
 			continue
 		}
 
@@ -77,7 +77,7 @@ func compile(words [][]byte) *Matcher {
 		// Calculate a suitable Base value where each edge will fit into the
 		// double array trie
 		base := m.findBase(edges)
-		m.Base[node.state] = base
+		m.base[node.state] = base
 
 		i := node.start
 		for _, edge := range edges {
@@ -90,13 +90,13 @@ func compile(words [][]byte) *Matcher {
 			if node.depth > 0 {
 				m.setFailState(newState, node.state, offset)
 			}
-			m.unionFailOutput(newState, m.Fail[newState])
+			m.unionFailOutput(newState, m.fail[newState])
 
 			// Add the child nodes to the queue to continue down the BFS
 			newnode := trienode{newState, node.depth + 1, i, i}
 			for {
 				if newnode.depth >= len(words[i]) {
-					m.Output[newState] = append(m.Output[newState], len(words[i]))
+					m.output[newState] = append(m.output[newState], len(words[i]))
 					newnode.start++
 				}
 				newnode.end++
@@ -138,42 +138,42 @@ func (m *Matcher) occupyState(state, parentState int) {
 	firstFreeState := m.firstFreeState()
 	lastFreeState := m.lastFreeState()
 	if firstFreeState == lastFreeState {
-		m.Check[0] = 0
+		m.check[0] = 0
 	} else {
 		switch state {
 		case firstFreeState:
-			next := -1 * m.Check[state]
-			m.Check[0] = -1 * next
-			m.Base[next] = m.Base[state]
+			next := -1 * m.check[state]
+			m.check[0] = -1 * next
+			m.base[next] = m.base[state]
 		case lastFreeState:
-			prev := -1 * m.Base[state]
-			m.Base[firstFreeState] = -1 * prev
-			m.Check[prev] = -1
+			prev := -1 * m.base[state]
+			m.base[firstFreeState] = -1 * prev
+			m.check[prev] = -1
 		default:
-			next := -1 * m.Check[state]
-			prev := -1 * m.Base[state]
-			m.Check[prev] = -1 * next
-			m.Base[next] = -1 * prev
+			next := -1 * m.check[state]
+			prev := -1 * m.base[state]
+			m.check[prev] = -1 * next
+			m.base[next] = -1 * prev
 		}
 	}
-	m.Check[state] = parentState
-	m.Base[state] = LEAF
+	m.check[state] = parentState
+	m.base[state] = LEAF
 }
 
 // setFailState sets the output of the fail function for input state. It will
 // traverse up the fail states of it's ancestors until it reaches a fail state
 // with a transition for offset.
 func (m *Matcher) setFailState(state, parentState, offset int) {
-	failState := m.Fail[parentState]
+	failState := m.fail[parentState]
 	for {
 		if m.hasEdge(failState, offset) {
-			m.Fail[state] = m.Base[failState] + offset
+			m.fail[state] = m.base[failState] + offset
 			break
 		}
 		if failState == 0 {
 			break
 		}
-		failState = m.Fail[failState]
+		failState = m.fail[failState]
 	}
 }
 
@@ -182,7 +182,7 @@ func (m *Matcher) setFailState(state, parentState, offset int) {
 // This allows us to match substrings, commenting out this body would match
 // every word that is not a substring.
 func (m *Matcher) unionFailOutput(state, failState int) {
-	m.Output[state] = append([]int{}, m.Output[failState]...)
+	m.output[state] = append([]int{}, m.output[failState]...)
 }
 
 // findBase finds a base value which has free states in the positions that
@@ -203,24 +203,24 @@ func (m *Matcher) findBase(edges []byte) int {
 		valid := true
 		for _, e := range edges[1:] {
 			state := freeState + int(e) - min
-			if state >= len(m.Check) {
+			if state >= len(m.check) {
 				break
-			} else if m.Check[state] >= 0 {
+			} else if m.check[state] >= 0 {
 				valid = false
 				break
 			}
 		}
 
 		if valid {
-			if freeState+width >= len(m.Check) {
-				m.increaseSize(width - len(m.Check) + freeState + 1)
+			if freeState+width >= len(m.check) {
+				m.increaseSize(width - len(m.check) + freeState + 1)
 			}
 			return freeState - min
 		}
 
 		freeState = m.nextFreeState(freeState)
 	}
-	freeState = len(m.Check)
+	freeState = len(m.check)
 	m.increaseSize(width + 1)
 	return freeState - min
 }
@@ -259,25 +259,25 @@ func (m *Matcher) increaseSize(dsize int) {
 		return
 	}
 
-	m.Base = append(m.Base, make([]int, dsize)...)
-	m.Check = append(m.Check, make([]int, dsize)...)
-	m.Fail = append(m.Fail, make([]int, dsize)...)
-	m.Output = append(m.Output, make([][]int, dsize)...)
+	m.base = append(m.base, make([]int, dsize)...)
+	m.check = append(m.check, make([]int, dsize)...)
+	m.fail = append(m.fail, make([]int, dsize)...)
+	m.output = append(m.output, make([][]int, dsize)...)
 
 	lastFreeState := m.lastFreeState()
 	firstFreeState := m.firstFreeState()
-	for i := len(m.Check) - dsize; i < len(m.Check); i++ {
+	for i := len(m.check) - dsize; i < len(m.check); i++ {
 		if lastFreeState == -1 {
-			m.Check[0] = -1 * i
-			m.Base[i] = -1 * i
-			m.Check[i] = -1
+			m.check[0] = -1 * i
+			m.base[i] = -1 * i
+			m.check[i] = -1
 			firstFreeState = i
 			lastFreeState = i
 		} else {
-			m.Base[i] = -1 * lastFreeState
-			m.Check[i] = -1
-			m.Base[firstFreeState] = -1 * i
-			m.Check[lastFreeState] = -1 * i
+			m.base[i] = -1 * lastFreeState
+			m.check[i] = -1
+			m.base[firstFreeState] = -1 * i
+			m.check[lastFreeState] = -1 * i
 			lastFreeState = i
 		}
 	}
@@ -288,7 +288,7 @@ func (m *Matcher) increaseSize(dsize int) {
 // negative index of the next free state, except for the last free state which
 // has a value of -1, negating this value is the next free state.
 func (m *Matcher) nextFreeState(curFreeState int) int {
-	nextState := -1 * m.Check[curFreeState]
+	nextState := -1 * m.check[curFreeState]
 
 	// state 1 can never be a free state.
 	if nextState == 1 {
@@ -302,7 +302,7 @@ func (m *Matcher) nextFreeState(curFreeState int) int {
 // first free state. A value of 0 means there are no free states and -1 is
 // returned.
 func (m *Matcher) firstFreeState() int {
-	state := m.Check[0]
+	state := m.check[0]
 	if state != 0 {
 		return -1 * state
 	}
@@ -314,15 +314,15 @@ func (m *Matcher) firstFreeState() int {
 func (m *Matcher) lastFreeState() int {
 	firstFree := m.firstFreeState()
 	if firstFree != -1 {
-		return -1 * m.Base[firstFree]
+		return -1 * m.base[firstFree]
 	}
 	return -1
 }
 
 // hasEdge determines if the fromState has a transition for offset.
 func (m *Matcher) hasEdge(fromState, offset int) bool {
-	toState := m.Base[fromState] + offset
-	return toState > 0 && toState < len(m.Check) && m.Check[toState] == fromState
+	toState := m.base[fromState] + offset
+	return toState > 0 && toState < len(m.check) && m.check[toState] == fromState
 }
 
 // Match represents a matched pattern in the text
@@ -337,13 +337,13 @@ func (m *Matcher) findAll(text []byte) []*Match {
 	for i, b := range text {
 		offset := int(b)
 		for state != 0 && !m.hasEdge(state, offset) {
-			state = m.Fail[state]
+			state = m.fail[state]
 		}
 
 		if m.hasEdge(state, offset) {
-			state = m.Base[state] + offset
+			state = m.base[state] + offset
 		}
-		for _, wordlen := range m.Output[state] {
+		for _, wordlen := range m.output[state] {
 			matches = append(matches, &Match{text[i-wordlen+1 : i+1], i - wordlen + 1})
 		}
 	}

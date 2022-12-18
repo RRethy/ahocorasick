@@ -36,7 +36,7 @@ m.FindAllString("ushers") // => { "she" 1 }, { "he" 2 }, { "hers" 2 }
 
 
 ```
-$ go test -bench=Benchmark
+$ git co d7354e5e7912add9c2c602aae74c508bca3b2f4d; go test -bench=Benchmark
 ```
 
 The two basic operations are the compilation of the state machine from an array of patterns (`Compile`), and the usage of this state machine to find each pattern in text (`FindAll`). Other implementations call these operations under different names.
@@ -60,11 +60,7 @@ The two basic operations are the compilation of the state machine from an array 
 
 **NOTE**: `FindAll` time does **not** include the `Compile` time for the state machine.
 
-## Implementation Details
-
-**TODO**
-
-### Works Cited
+### Reference Papers
 
 [1] A. V. Aho, M. J. Corasick, "Efficient String Matching: An Aid to Bibliographic Search," Communications of the ACM, vol. 18, no. 6, pp. 333-340, June 1975.
 
