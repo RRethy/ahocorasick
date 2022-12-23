@@ -1,6 +1,6 @@
-// Package biblio implements the Aho-Corasick string matching algorithm for
+// Package ahocorasick implements the Aho-Corasick string matching algorithm for
 // efficiently finding all instances of multiple patterns in a text.
-package biblio
+package ahocorasick
 
 import (
 	"bytes"
@@ -233,27 +233,39 @@ func (m *Matcher) findBase(edges []byte) int {
 //
 // Example:
 // m:
-//   base:  [ 5 0 0 ]
-//   check: [ 0 0 0 ]
+//
+//	base:  [ 5 0 0 ]
+//	check: [ 0 0 0 ]
+//
 // increaseSize(3):
-//   base:  [ 5  0 0 -5 -3 -4 ]
-//   check: [ -3 0 0 -4 -5 -1 ]
+//
+//	base:  [ 5  0 0 -5 -3 -4 ]
+//	check: [ -3 0 0 -4 -5 -1 ]
+//
 // increaseSize(3):
-//   base:  [ 5  0 0 -8 -3 -4 -5 -6 -7]
-//   check: [ -3 0 0 -4 -5 -6 -7 -8 -1]
+//
+//	base:  [ 5  0 0 -8 -3 -4 -5 -6 -7]
+//	check: [ -3 0 0 -4 -5 -6 -7 -8 -1]
 //
 // m:
-//   base:  [ 5 0 0 ]
-//   check: [ 0 0 0 ]
+//
+//	base:  [ 5 0 0 ]
+//	check: [ 0 0 0 ]
+//
 // increaseSize(1):
-//   base:  [ 5  0 0 -3 ]
-//   check: [ -3 0 0 -1 ]
+//
+//	base:  [ 5  0 0 -3 ]
+//	check: [ -3 0 0 -1 ]
+//
 // increaseSize(1):
-//   base:  [ 5  0 0 -4 -3 ]
-//   check: [ -3 0 0 -4 -1 ]
+//
+//	base:  [ 5  0 0 -4 -3 ]
+//	check: [ -3 0 0 -4 -1 ]
+//
 // increaseSize(1):
-//   base:  [ 5  0 0 -5 -3 -4 ]
-//   check: [ -3 0 0 -4 -5 -1 ]
+//
+//	base:  [ 5  0 0 -5 -3 -4 ]
+//	check: [ -3 0 0 -4 -5 -1 ]
 func (m *Matcher) increaseSize(dsize int) {
 	if dsize == 0 {
 		return

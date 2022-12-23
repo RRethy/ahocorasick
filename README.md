@@ -1,14 +1,14 @@
-# Biblio
+# ahocorasick
 
 The fastest Golang implementation of the Aho-Corasick algorithm for string-searching.
 
 ## Usage
 
 ```bash
-go get github.com/rrethy/biblio@v1.0.0
+go get github.com/rrethy/ahocorasick@v1.0.0
 ```
 
-[Documentation](https://godoc.org/github.com/RRethy/biblio)
+[Documentation](https://godoc.org/github.com/RRethy/ahocorasick)
 
 ```go
 m := CompileByteSlices([][]byte{
@@ -45,7 +45,7 @@ $ git co d7354e5e7912add9c2c602aae74c508bca3b2f4d; go test -bench=Benchmark
 
 The two basic operations are the compilation of the state machine from an array of patterns (`Compile`), and the usage of this state machine to find each pattern in text (`FindAll`). Other implementations call these operations under different names.
 
-| Operation | Input Size | rrethy/biblio | [BobuSumisu/aho-corasick](https://github.com/BobuSumisu/aho-corasick) | [anknown/ahocorasick](https://github.com/anknown/ahocorasick) |
+| Operation | Input Size | rrethy/ahocorasick | [BobuSumisu/aho-corasick](https://github.com/BobuSumisu/aho-corasick) | [anknown/ahocorasick](https://github.com/anknown/ahocorasick) |
 | - | - | - | - | - |
 | - | - | Double-Array Trie | LinkedList Trie | Double-Array Trie |
 | - | - | - | - | - |
