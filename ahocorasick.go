@@ -343,6 +343,10 @@ type Match struct {
 	Index int    // the start index of the match
 }
 
+func (m *Match) String() string {
+	return fmt.Sprintf(`{ "%s" %d }`, m.Word, m.Index)
+}
+
 func (m *Matcher) findAll(text []byte) []*Match {
 	var matches []*Match
 	state := 0

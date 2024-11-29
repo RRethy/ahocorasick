@@ -1,6 +1,7 @@
 package ahocorasick
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -198,4 +199,32 @@ func TestOccupyState(t *testing.T) {
 	if !reflect.DeepEqual(m.check, []int{0, 0, 0, 1, 1, 1, 1, 1, 1}) {
 		t.Errorf("Got: %v\n", m.check)
 	}
+}
+
+func ExampleMatcher_FindAllByteSlice() {
+	matcher := CompileByteSlices([][]byte{
+		[]byte("he"),
+		[]byte("she"),
+		[]byte("his"),
+		[]byte("hers"),
+		[]byte("she"),
+	})
+	fmt.Print(matcher.FindAllByteSlice([]byte("ushers")))
+
+	// Output:
+	// [{ "he" 2 } { "she" 1 } { "she" 1 } { "hers" 2 }]
+}
+
+func ExampleMatcher_FindAllString() {
+	matcher := CompileStrings([]string{
+		"he",
+		"she",
+		"his",
+		"hers",
+		"she",
+	})
+	fmt.Print(matcher.FindAllString("ushers"))
+
+	// Output:
+	// [{ "he" 2 } { "she" 1 } { "she" 1 } { "hers" 2 }]
 }

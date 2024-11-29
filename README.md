@@ -11,23 +11,32 @@ go get github.com/rrethy/ahocorasick@v1.0.0
 [Documentation](https://godoc.org/github.com/RRethy/ahocorasick)
 
 ```go
-m := CompileByteSlices([][]byte{
-  []byte("he"),
-  []byte("she"),
-  []byte("his"),
-  []byte("hers"),
-  []byte("she"),
+matcher := CompileByteSlices([][]byte{
+	[]byte("he"),
+	[]byte("she"),
+	[]byte("his"),
+	[]byte("hers"),
+	[]byte("she"),
 })
-m.FindAllByteSlice([]byte("ushers")) // => { "she" 1 }, { "he" 2 }, { "hers" 2 }
+fmt.Print(matcher.FindAllByteSlice([]byte("ushers")))
 
-m := CompileStrings([]string{
-  "he",
-  "she",
-  "his",
-  "hers",
-  "she",
-)
-m.FindAllString("ushers") // => { "she" 1 }, { "he" 2 }, { "hers" 2 }
+// Output:
+// [{ "he" 2 } { "she" 1 } { "she" 1 } { "hers" 2 }]
+```
+
+```go
+matcher := CompileStrings([]string{
+	"he",
+	"she",
+	"his",
+	"hers",
+	"she",
+})
+fmt.Print(matcher.FindAllString("ushers"))
+}
+
+// Output:
+// [{ "he" 2 } { "she" 1 } { "she" 1 } { "hers" 2 }]
 ```
 
 ## Benchmarks
