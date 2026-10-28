@@ -1,8 +1,11 @@
 package ahocorasick
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -21,7 +24,7 @@ func TestFindAllByteSlice(t *testing.T) {
 		[]byte("hers"),
 		[]byte("she")},
 	)
-	m.findAll([]byte("ushers")) // => { "she" 1 }, { "he" 2}, { "hers" 2 }
+	m.FindByteSliceN([]byte("ushers"), -1) // => { "she" 1 }, { "he" 2}, { "hers" 2 }
 	tests := []struct {
 		patterns [][]byte
 		expected []Match
@@ -63,18 +66,112 @@ func TestFindAllByteSlice(t *testing.T) {
 			[]byte("potholderz by MF DOOM hot shit aw shit 锅 持有人"),
 		},
 	}
-	for _, test := range tests {
-		matcher := compile(test.patterns)
-		got := matcher.findAll(test.text)
-		gotConverted := convert(got)
-		if !(len(got) == 0 && len(test.expected) == 0) &&
-			!reflect.DeepEqual(gotConverted, test.expected) {
-			t.Errorf(`
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+			matcher := compile(test.patterns)
+			got := matcher.FindByteSliceN(test.text, -1)
+			gotConverted := convert(got)
+			if !(len(got) == 0 && len(test.expected) == 0) &&
+				!reflect.DeepEqual(gotConverted, test.expected) {
+				t.Errorf(`
         Text:     %s
 		Expected: %v
 		Got:      %v
 		`, test.text, test.expected, gotConverted)
+			}
+		})
+	}
+}
+
+func TestFindNStreaming(t *testing.T) {
+	matcher := CompileStrings([]string{"he", "she", "his", "hers"})
+	chunks := []string{"us", "h", "ers"}
+	consumed := 0
+	text := func(yield func(byte) bool) {
+		for _, chunk := range chunks {
+			for i := range len(chunk) {
+				consumed++
+				if !yield(chunk[i]) {
+					return
+				}
+			}
 		}
+	}
+
+	got := convert(matcher.FindN(text, 2))
+	want := []Match{{[]byte("he"), 2}, {[]byte("she"), 1}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("FindN() = %v, want %v", got, want)
+	}
+	if consumed != 4 {
+		t.Errorf("consumed %d bytes, want 4", consumed)
+	}
+}
+
+func TestFindReadNStopsAtLimit(t *testing.T) {
+	matcher := CompileStrings([]string{"he", "she", "his", "hers"})
+	reader := bytes.NewReader([]byte("ushers"))
+
+	got, err := matcher.FindReadN(reader, 2)
+	want := []Match{{[]byte("he"), 2}, {[]byte("she"), 1}}
+	if err != nil {
+		t.Fatalf("FindReadN() error = %v", err)
+	}
+	if got := convert(got); !reflect.DeepEqual(got, want) {
+		t.Errorf("FindReadN() = %v, want %v", got, want)
+	}
+	if reader.Len() != 2 {
+		t.Errorf("reader has %d bytes remaining, want 2", reader.Len())
+	}
+}
+
+func TestFindReadNPropagatesError(t *testing.T) {
+	matcher := CompileStrings([]string{"he", "she", "his", "hers"})
+	readErr := errors.New("read failed")
+	text := []byte("ushers")
+	reader := &errorByteReader{data: text, err: readErr}
+
+	got, err := matcher.FindReadN(reader, -1)
+	if !errors.Is(err, readErr) {
+		t.Fatalf("FindReadN() error = %v, want %v", err, readErr)
+	}
+	if want := matcher.FindByteSliceN(text, -1); !reflect.DeepEqual(got, want) {
+		t.Errorf("FindReadN() matches = %v, want %v", got, want)
+	}
+}
+
+type errorByteReader struct {
+	data []byte
+	err  error
+}
+
+func (r *errorByteReader) ReadByte() (byte, error) {
+	if len(r.data) == 0 {
+		return 0, r.err
+	}
+	b := r.data[0]
+	r.data = r.data[1:]
+	return b, nil
+}
+
+func TestFindAllVariants(t *testing.T) {
+	matcher := CompileStrings([]string{"he", "she", "his", "hers"})
+	text := []byte("ushers")
+	want := matcher.FindByteSliceN(text, -1)
+
+	if got := matcher.FindAllByteSlice(text); !reflect.DeepEqual(got, want) {
+		t.Errorf("FindAllByteSlice() = %v, want %v", got, want)
+	}
+	if got := matcher.FindAllString(string(text)); !reflect.DeepEqual(got, want) {
+		t.Errorf("FindAllString() = %v, want %v", got, want)
+	}
+	if got := matcher.FindAll(slices.Values(text)); !reflect.DeepEqual(got, want) {
+		t.Errorf("FindAll() = %v, want %v", got, want)
+	}
+	if got, err := matcher.FindAllRead(bytes.NewReader(text)); err != nil {
+		t.Errorf("FindAllRead() error = %v", err)
+	} else if !reflect.DeepEqual(got, want) {
+		t.Errorf("FindAllRead() = %v, want %v", got, want)
 	}
 }
 
@@ -84,6 +181,7 @@ func TestIncreaseSize(t *testing.T) {
 		[]int{0, 0, 0},
 		[]int{0, 0, 0},
 		[][]int{},
+		100,
 	}
 	m.increaseSize(1)
 	if !reflect.DeepEqual(m.base, []int{5, 0, 0, -3}) {
@@ -114,6 +212,7 @@ func TestIncreaseSize(t *testing.T) {
 		[]int{0, 0, 0},
 		[]int{0, 0, 0},
 		[][]int{},
+		100,
 	}
 	m.increaseSize(3)
 	if !reflect.DeepEqual(m.base, []int{5, 0, 0, -5, -3, -4}) {
@@ -136,6 +235,7 @@ func TestIncreaseSize(t *testing.T) {
 		[]int{0},
 		[]int{0},
 		[][]int{},
+		100,
 	}
 	m.increaseSize(5)
 	if !reflect.DeepEqual(m.base, []int{0, -5, -1, -2, -3, -4}) {
@@ -150,6 +250,7 @@ func TestIncreaseSize(t *testing.T) {
 		[]int{0, 0},
 		[]int{},
 		[][]int{},
+		100,
 	}
 	m.increaseSize(5)
 	if !reflect.DeepEqual(m.base, []int{-103, -1867, -6, -2, -3, -4, -5}) {
@@ -166,6 +267,7 @@ func TestNextFreeState(t *testing.T) {
 		[]int{-3, 0, 0, -1},
 		[]int{},
 		[][]int{},
+		100,
 	}
 	nextState := m.nextFreeState(3)
 	if nextState != -1 {
@@ -185,6 +287,7 @@ func TestOccupyState(t *testing.T) {
 		[]int{-3, 0, 0, -1},
 		[]int{},
 		[][]int{},
+		100,
 	}
 	m.increaseSize(5)
 	m.occupyState(3, 1)
@@ -201,7 +304,7 @@ func TestOccupyState(t *testing.T) {
 	}
 }
 
-func ExampleMatcher_FindAllByteSlice() {
+func ExampleMatcher_FindByteSliceN() {
 	matcher := CompileByteSlices([][]byte{
 		[]byte("he"),
 		[]byte("she"),
@@ -209,13 +312,13 @@ func ExampleMatcher_FindAllByteSlice() {
 		[]byte("hers"),
 		[]byte("she"),
 	})
-	fmt.Print(matcher.FindAllByteSlice([]byte("ushers")))
+	fmt.Print(matcher.FindByteSliceN([]byte("ushers"), -1))
 
 	// Output:
 	// [{ "he" 2 } { "she" 1 } { "she" 1 } { "hers" 2 }]
 }
 
-func ExampleMatcher_FindAllString() {
+func ExampleMatcher_FindStringN() {
 	matcher := CompileStrings([]string{
 		"he",
 		"she",
@@ -223,8 +326,29 @@ func ExampleMatcher_FindAllString() {
 		"hers",
 		"she",
 	})
-	fmt.Print(matcher.FindAllString("ushers"))
+	fmt.Print(matcher.FindStringN("ushers", -1))
 
 	// Output:
 	// [{ "he" 2 } { "she" 1 } { "she" 1 } { "hers" 2 }]
+}
+
+func Test_trail(t *testing.T) {
+	t.Run("continuous", func(t *testing.T) {
+		trl := newTrail(5)
+		for b := byte('a'); b < byte('e'); b++ {
+			trl.next(b)
+		}
+		if w := string(trl.word(3)); w != "bcd" {
+			t.Errorf("word '%s'", w)
+		}
+	})
+	t.Run("wrapped around", func(t *testing.T) {
+		trl := newTrail(5)
+		for b := byte('a'); b < byte('h'); b++ {
+			trl.next(b)
+		}
+		if w := string(trl.word(3)); w != "efg" {
+			t.Errorf("word '%s'", w)
+		}
+	})
 }

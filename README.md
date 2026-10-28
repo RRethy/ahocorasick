@@ -11,31 +11,32 @@ go get github.com/rrethy/ahocorasick@v1.0.0
 [Documentation](https://godoc.org/github.com/RRethy/ahocorasick)
 
 ```go
-matcher := CompileByteSlices([][]byte{
-	[]byte("he"),
-	[]byte("she"),
-	[]byte("his"),
-	[]byte("hers"),
-	[]byte("she"),
-})
-fmt.Print(matcher.FindAllByteSlice([]byte("ushers")))
+package main
 
-// Output:
-// [{ "he" 2 } { "she" 1 } { "she" 1 } { "hers" 2 }]
-```
+import (
+	"bytes"
+	"fmt"
+	"slices"
 
-```go
-matcher := CompileStrings([]string{
-	"he",
-	"she",
-	"his",
-	"hers",
-	"she",
-})
-fmt.Print(matcher.FindAllString("ushers"))
+	"github.com/rrethy/ahocorasick"
+)
+
+func main() {
+	matcher := ahocorasick.CompileStrings([]string{"he", "she", "his", "hers", "she"})
+	text := []byte("ushers")
+
+	fmt.Println(matcher.FindAllByteSlice(text))
+	fmt.Println(matcher.FindAllString(string(text)))
+	fmt.Println(matcher.FindAll(slices.Values(text)))
+
+	matches, err := matcher.FindAllRead(bytes.NewReader(text))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(matches)
 }
 
-// Output:
+// Each search prints:
 // [{ "he" 2 } { "she" 1 } { "she" 1 } { "hers" 2 }]
 ```
 

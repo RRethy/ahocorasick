@@ -4,7 +4,12 @@ package ahocorasick
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
+	"iter"
+	"math"
+	"slices"
 	"sort"
 )
 
@@ -18,10 +23,11 @@ const (
 
 // Matcher is the pattern matching state machine.
 type Matcher struct {
-	base   []int   // base array in the double array trie
-	check  []int   // check array in the double array trie
-	fail   []int   // fail function
-	output [][]int // output function
+	base    []int   // base array in the double array trie
+	check   []int   // check array in the double array trie
+	fail    []int   // fail function
+	output  [][]int // output function
+	wlenmax int     // len of longest word
 }
 
 func (m *Matcher) String() string {
@@ -45,6 +51,10 @@ func compile(words [][]byte) *Matcher {
 	m.check = make([]int, 2048)[:1]
 	m.fail = make([]int, 2048)[:1]
 	m.output = make([][]int, 2048)[:1]
+
+	for _, w := range words {
+		m.wlenmax = max(m.wlenmax, len(w))
+	}
 
 	sort.Sort(byteSliceSlice(words))
 
@@ -347,10 +357,26 @@ func (m *Match) String() string {
 	return fmt.Sprintf(`{ "%s" %d }`, m.Word, m.Index)
 }
 
-func (m *Matcher) findAll(text []byte) []*Match {
+func (m *Matcher) FindReadN(text io.ByteReader, n int) ([]*Match, error) {
+	switch {
+	case n == 0:
+		return nil, nil
+	case n < 0:
+		n = math.MaxInt
+	}
 	var matches []*Match
+	trail := newTrail(m.wlenmax)
 	state := 0
-	for i, b := range text {
+	i := 0
+	for {
+		b, err := text.ReadByte()
+		switch {
+		case err == io.EOF || errors.Is(err, io.EOF):
+			return matches, nil
+		case err != nil:
+			return matches, err
+		}
+		trail.next(b)
 		offset := int(b)
 		for state != 0 && !m.hasEdge(state, offset) {
 			state = m.fail[state]
@@ -360,18 +386,101 @@ func (m *Matcher) findAll(text []byte) []*Match {
 			state = m.base[state] + offset
 		}
 		for _, wordlen := range m.output[state] {
-			matches = append(matches, &Match{text[i-wordlen+1 : i+1], i - wordlen + 1})
+			matches = append(matches, &Match{trail.word(wordlen), i - wordlen + 1})
+			if len(matches) >= n {
+				return matches, nil
+			}
 		}
+		i++
+	}
+}
+
+// FindAllRead finds all instances of the patterns in text.
+func (m *Matcher) FindAllRead(text io.ByteReader) ([]*Match, error) {
+	return m.FindReadN(text, -1)
+}
+
+// FindN finds up to n matches in text. A negative n finds all matches.
+func (m *Matcher) FindN(text iter.Seq[byte], n int) []*Match {
+	switch {
+	case n == 0:
+		return nil
+	case n < 0:
+		n = math.MaxInt
+	}
+	var matches []*Match
+	trail := newTrail(m.wlenmax)
+	state := 0
+	i := 0
+	for b := range text {
+		trail.next(b)
+		offset := int(b)
+		for state != 0 && !m.hasEdge(state, offset) {
+			state = m.fail[state]
+		}
+
+		if m.hasEdge(state, offset) {
+			state = m.base[state] + offset
+		}
+		for _, wordlen := range m.output[state] {
+			matches = append(matches, &Match{trail.word(wordlen), i - wordlen + 1})
+			if len(matches) >= n {
+				return matches
+			}
+		}
+		i++
 	}
 	return matches
 }
 
-// FindAllByteSlice finds all instances of the patterns in the text.
-func (m *Matcher) FindAllByteSlice(text []byte) (matches []*Match) {
-	return m.findAll(text)
+// FindAll finds all instances of the patterns in text.
+func (m *Matcher) FindAll(text iter.Seq[byte]) []*Match {
+	return m.FindN(text, -1)
 }
 
-// FindAllString finds all instances of the patterns in the text.
+// FindByteSliceN finds up to n instances of the patterns in the text.
+func (m *Matcher) FindByteSliceN(text []byte, n int) (matches []*Match) {
+	return m.FindN(slices.Values(text), n)
+}
+
+// FindAllByteSlice finds all instances of the patterns in text.
+func (m *Matcher) FindAllByteSlice(text []byte) []*Match {
+	return m.FindByteSliceN(text, -1)
+}
+
+// FindStringN finds up to n instances of the patterns in the text.
+func (m *Matcher) FindStringN(text string, n int) []*Match {
+	return m.FindByteSliceN([]byte(text), n)
+}
+
+// FindAllString finds all instances of the patterns in text.
 func (m *Matcher) FindAllString(text string) []*Match {
-	return m.FindAllByteSlice([]byte(text))
+	return m.FindStringN(text, -1)
+}
+
+type trail struct {
+	bs []byte
+	tp int
+}
+
+func newTrail(len int) trail {
+	return trail{bs: make([]byte, max(1, len))}
+}
+
+func (t *trail) next(b byte) {
+	t.bs[t.tp] = b
+	if t.tp++; t.tp == len(t.bs) {
+		t.tp = 0
+	}
+}
+
+func (t *trail) word(l int) []byte {
+	w := make([]byte, 0, l)
+	if s := t.tp - l; s >= 0 {
+		w = append(w, t.bs[s:t.tp]...)
+	} else {
+		w = append(w, t.bs[len(t.bs)+s:]...)
+		w = append(w, t.bs[:l+s]...)
+	}
+	return w
 }
